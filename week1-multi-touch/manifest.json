@@ -1,0 +1,12 @@
+{
+  "name": "LOTUS",
+  "icons": [
+    {
+      "src": "assets/lotus.png",
+      "type": "image/png",
+      "sizes": "160x160"
+    }
+  ],
+  "orientation": "Natural",
+  "display": "standalone"
+}
