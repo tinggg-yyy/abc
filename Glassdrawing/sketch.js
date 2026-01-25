@@ -10,7 +10,10 @@ function setup() {
 }
 
 function draw() {
-  image(capture, 0, 0, width, (width * capture.height) / capture.width);
+  push();
+  scale(-1, 1);
+  image(capture, 0, 0, width, height);
+  pop();
   image(fog, 0, 0);
 }
 
