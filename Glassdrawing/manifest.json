@@ -1,10 +1,10 @@
 {
-  "name": "Multi-Touch",
+  "name": "GlassDrawing",
   "icons": [
     {
-      "src": "assets/512.png",
+      "src": "assets/fog.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "256x256"
     }
   ],
   "orientation": "Natural",

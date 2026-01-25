@@ -11,6 +11,7 @@ function setup() {
 
 function draw() {
   image(capture, 0, 0, width, (width * capture.height) / capture.width);
+  image(fog, 0, 0);
 }
 
 // P5 touch events: https://p5js.org/reference/#Touch
@@ -24,7 +25,7 @@ function touchMoved() {
     let x = touches[i].x;
     let y = touches[i].y;
     fog.erase();
-    fog.circle(x, y, 80);
+    fog.circle(x, y, 20);
     fog.noErase();
     image(fog, 0, 0);
   }
