@@ -10,9 +10,11 @@ function setup() {
 }
 
 function draw() {
+  push();
+  translate(width, 0);
   scale(-1, 1);
   image(capture, 0, 0, width, height);
-  scale(-1, 1);
+  pop();
   image(fog, 0, 0);
 }
 
