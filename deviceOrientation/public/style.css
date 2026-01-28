@@ -16,7 +16,7 @@ body{
 /* height:100vh; means full height of viewport */
 
 
-/* #wrapper{
+#wrapper{
     background-color: lightblue;
     width:100%; 
     height:100vh; 
@@ -34,4 +34,4 @@ body{
     background-color: bisque;
     transform: rotate(-25deg);
     transform-origin: 50% 50%;
-} */
+}
