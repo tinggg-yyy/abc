@@ -1,0 +1,30 @@
+* {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: black;
+  flex-direction: column;
+}
+
+h1 {
+  color: beige;
+  text-align: center;
+  margin: 0 0 20px 0;
+  font-size: 60px;
+}
+
+button {
+  width: 120px;
+  height: 50px;
+  font-size: 32px;
+  color: black;
+  background-color: beige;
+  border-radius: 5px;
+  border: none;
+}

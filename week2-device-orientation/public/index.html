@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+    />
+
+    <link rel="manifest" href="manifest.json" />
+
+    <title>Roll & Dodge</title>
+
+    <link rel="stylesheet" type="text/css" href="style.css" />
+
+    <script src="lib/p5.js"></script>
+    <!-- <script src="lib/p5.sound.js"></script> -->
+  </head>
+
+  <body>
+    <h1>Roll & Dodge</h1>
+    <button id="requestOrientationButton" onclick="requestOrientation()">
+      START
+    </button>
+
+    <div class="main-wrapper" style="display: none" id="p5-container">
+      <!-- the following div will contain the p5 canvas. -->
+      <div id="p5-canvas-container">
+        <!-- p5 canvas will be appended here. -->
+      </div>
+    </div>
+
+    <!-- function to request orientation -->
+    <script src="requestOrientation.js"></script>
+    <!-- the script tag below should always be at the bottom, right before the closing body tag -->
+    <script src="sketch.js"></script>
+  </body>
+</html>

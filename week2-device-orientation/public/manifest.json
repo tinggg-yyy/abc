@@ -1,0 +1,12 @@
+{
+  "name": "Roll & Dodge",
+  "icons": [
+    {
+      "src": "assets/hole.png",
+      "type": "image/png",
+      "sizes": "319x319"
+    }
+  ],
+  "orientation": "Natural",
+  "display": "standalone"
+}
