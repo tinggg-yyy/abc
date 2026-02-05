@@ -29,17 +29,17 @@ const io = new Server(HTTPSserver); // start socket.io server
 io.on("connection", (socket) => {
   console.log("a user connected:");
 
-  socket.on("MessageFromClient", function (incomingMessage) {
-    console.log(incomingMessage);
+  socket.on("MessageFromClient", function (incomingMessageData) {
+    console.log(incomingMessageData);
 
-    // SEND MESSAGE TO ALL OTHER CONNECTED CLIENTS
-    let messageToAllClients = {
-        sender:"unknown",
-        message: incomingMessage
-    }
+    // // SEND MESSAGE TO ALL OTHER CONNECTED CLIENTS
+    // let messageToAllClients = {
+    //     sender:"unknown",
+    //     message: incomingMessage
+    // }
 
     // Server emits to all connected clients
-     io.emit("MessageFromServer", messageToAllClients);
+     io.emit("MessageFromServer", incomingMessageData);
 
   });
 

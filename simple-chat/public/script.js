@@ -5,6 +5,7 @@ let formeElm = document.querySelector("#chatForm");
 console.log(formeElm);
 let msgInput = document.querySelector("#newMessage");
 console.log(msgInput);
+let nameInput = document.querySelector("#nameWrapper input");
 
 // LISTEN FOR NEWLY TYPES MESSAGES,
 formeElm.addEventListener("submit", newMessageSubmitted);
@@ -18,8 +19,13 @@ function newMessageSubmitted(event) {
   console.log(newMsg);
   //appendMessage(newMsg);
 
+  let messageData = {
+    sender: nameInput.value,
+    message: newMsg,
+  };
+
   // SEND THEM TO THE SERVER
-  socket.emit("MessageFromClient", newMsg);
+  socket.emit("MessageFromClient", messageData);
 
   // clear input box
   msgInput.value = "";
@@ -30,19 +36,33 @@ function newMessageSubmitted(event) {
 // AUTO SCROLL TO BOTTOM
 socket.on("MessageFromServer", function (msgData) {
   console.log("got a message", msgData);
-  appendMessage(msgData.message);
+  appendMessage(msgData);
 });
 
 // APPEND MESSAGES TO BOX
-function appendMessage(txt) {
-  console.log(txt);
+function appendMessage(data) {
+  console.log(data);
   // select list (ul) first
   let chatThreadList = document.querySelector("#threadWrapper ul");
   console.log(chatThreadList);
 
   // create new list item (li)
   let newListItem = document.createElement("li");
-  newListItem.innerText = txt;
+  // newListItem.innerText = txt;
+
+  //sender
+  let who = document.createElement("span");
+  who.className = "who";
+  who.innerText = data.sender + ":" || "anonymous:";
+
+  newListItem.append(who);
+
+  //messsage
+  let words = document.createElement("span");
+  words.className = "words";
+  words.innerText = data.message;
+
+  newListItem.append(words);
 
   // append new li to the list
   chatThreadList.append(newListItem);
