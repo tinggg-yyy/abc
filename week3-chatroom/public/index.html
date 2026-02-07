@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+    />
+
+    <link rel="manifest" href="manifest.json" />
+
+    <title>♥ Room</title>
+
+    <link rel="stylesheet" type="text/css" href="style.css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Coral+Pixels&display=swap"
+      rel="stylesheet"
+    />
+    <!-- <script src="lib/p5.js"></script> -->
+    <!-- <script src="lib/p5.sound.js"></script> -->
+
+    <!-- include socket.io library -->
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+
+  <body>
+    <section class="page active" id="login">
+      <div class="loginpage">
+        <div id="nameWrapper">
+          <h1>! Welcome to ♥ Room !</h1>
+          <p>NAME</p>
+          <input type="text" placeholder="Your Name" />
+          <p>BREED</p>
+          <select name="breed" id="breed">
+            <option value="dog">Dog</option>
+            <option value="cat">Cat</option>
+            <option value="bear">Bear</option>
+            <option value="frog">Frog</option>
+            <option value="cutefrog">Frog</option>
+            <option value="rabbit">Rabbit</option>
+            <option value="fatrabbit">Fat Rabbit</option>
+            <option value="ox">Ox</option>
+            <option value="buffalo">Buffalo</option>
+            <option value="gorilla">Gorilla</option>
+          </select>
+        </div>
+        <button onclick="goTo('datingroom')">Enter</button>
+      </div>
+    </section>
+
+    <section class="page" id="datingroom">
+      <div class="main-wrapper">
+        <h1>♥</h1>
+        <div id="threadWrapper">
+          <ul>
+            <!-- <li class="me">
+              <span class="words"></span>
+              <span class="who"></span>
+            </li>
+            <li class="other">
+              <span class="who"></span>
+              <span class="words"></span>
+            </li> -->
+          </ul>
+        </div>
+        <div>
+          <form id="chatForm">
+            <input
+              id="newMessage"
+              placeholder="Type something"
+              autocomplete="off"
+            />
+            <button type="submit">Send</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- the script tag below should always be at the bottom, right before the closing body tag -->
+    <script src="script.js"></script>
+  </body>
+</html>
