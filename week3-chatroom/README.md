@@ -38,7 +38,6 @@ http://(your own IP address):3000
 
 Instead of seeing text messages, users only see **hearts**. The number of hearts represents the length of a message.
 
----
 
 ## How It Works
 
@@ -55,4 +54,3 @@ Instead of seeing text messages, users only see **hearts**. The number of hearts
 Meaning is hidden.  
 Only the quantity of “love” remains.
 
----
