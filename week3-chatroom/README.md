@@ -1,6 +1,6 @@
 ## Installation Guide
 
-Follow the steps below to run ♥︎ Room locally. (Prerequisites: Node.js installed)
+Follow the steps below to run ♥︎ Room locally. (Prerequisite: Node.js installed)
 
 ### 1. Clone the repository
 
@@ -50,7 +50,7 @@ Instead of seeing text messages, users only see **hearts**. The number of hearts
    - messages **you send** appear as hearts to others
    - messages **others send** appear as hearts to you
 
-3. The more you type, the more hearts appear.
+3. The more you type, the more hearts appear to others.
 
 Meaning is hidden.  
 Only the quantity of “love” remains.
