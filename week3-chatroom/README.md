@@ -1,23 +1,17 @@
 ## Installation Guide
 
-Follow the steps below to run ♥︎ Room locally.
-
-## Prerequisites
-
-- Node.js installed
-- npm installed
-- A terminal (Terminal / Command Prompt)
+Follow the steps below to run ♥︎ Room locally. (Prerequisites: Node.js installed)
 
 ### 1. Clone the repository
 
 ```bash
-git clone (your repository link)
+git clone https://github.com/tinggg-yyy/abc.git
 ```
 
 ### 2. Navigate to your project folder
 
 ```bash
-cd your-project-folder
+cd your local path of week3-chatroom folder
 ```
 
 ### 3. Install dependencies
