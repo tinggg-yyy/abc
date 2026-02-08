@@ -1,3 +1,26 @@
+# ♥︎ Room
+
+♥︎ Room is an experimental chatroom where words disappear and affection takes their place.
+
+Instead of seeing text messages, users only see **hearts**. 
+The number of hearts represents the length of a message.
+
+
+## How It Works
+
+1. When you enter ♥︎ Room, you:
+   - choose a **username**
+   - select an **animal avatar**
+
+2. After entering the chatroom:
+   - messages **you send** appear as hearts to others
+   - messages **others send** appear as hearts to you
+
+3. The more you type, the more hearts appear to others.
+
+Meaning is hidden.  
+Only the quantity of “love” remains.
+
 ## Installation Guide
 
 Follow the steps below to run ♥︎ Room locally. (Prerequisite: Node.js installed)
@@ -31,26 +54,4 @@ node server.js
 ```bash
 http://(your own IP address):3000
 ```
-
-# ♥︎ Room
-
-♥︎ Room is an experimental chatroom where words disappear and affection takes their place.
-
-Instead of seeing text messages, users only see **hearts**. The number of hearts represents the length of a message.
-
-
-## How It Works
-
-1. When you enter ♥︎ Room, you:
-   - choose a **username**
-   - select an **animal avatar**
-
-2. After entering the chatroom:
-   - messages **you send** appear as hearts to others
-   - messages **others send** appear as hearts to you
-
-3. The more you type, the more hearts appear to others.
-
-Meaning is hidden.  
-Only the quantity of “love” remains.
 
