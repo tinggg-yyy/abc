@@ -1,0 +1,42 @@
+body{
+    margin: 0;
+    overflow: hidden;
+}
+
+.main-wrapper{
+    width:100%;
+    height:100dvh;
+    background-color: #d8ffc4;
+    /* display: flex;
+    align-items: center;
+    justify-content: center; */
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    /* background-color: blue; */
+    /* height: 100%; */
+        
+}
+
+/* #frogImg{
+    transition: width;
+
+} */
+
+
+.img-wrap {
+  width: 20vw;
+  height: 20vw;
+  display: flex; /* flexbox layout for the image wrappers, allows for... */
+  align-items: center; /* ...easy centering */
+  justify-content: center;
+  padding: 10px; /* just some spacing so the images can breathe, remove if you want them edge to edge */
+}
+
+.img-wrap img {
+  max-width: 100%; /* max dimensions on the images so they always fit */
+  max-height: 100%;
+  height: auto; /* maintain aspect ratio */
+  width: auto;
+}
