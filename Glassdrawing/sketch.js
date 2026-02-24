@@ -3,7 +3,11 @@ let capture;
 function setup() {
   let canvas = createCanvas(windowWidth, windowHeight);
   canvas.parent("p5-canvas-container");
-  capture = createCapture(VIDEO);
+  capture = createCapture({
+    video: {
+      facingMode: "environment",
+    },
+  });
   capture.hide();
   fog = createGraphics(width, height);
   fog.background(255, 180);
