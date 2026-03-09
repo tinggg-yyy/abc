@@ -40,7 +40,8 @@ function setup() {
   breathGif = createImg("assets/breathe4.GIF");
   breathGif.position(width / 2 - 400, height / 2 - 200);
   breathGif.size(800, 400);
-  breathGif.style("filter", "invert(1)");
+  breathGif.style("filter", "invert(1)"); // turn black to white
+  breathGif.style("transform", "rotate(90deg)");
   pop();
 }
 
@@ -111,7 +112,7 @@ function gotFaces(results) {
 // either I start new line:
 function touchStarted() {
   let p = [touches[0].x, touches[0].y];
-  if (!lines["me"]) lines["me"] = []; 
+  if (!lines["me"]) lines["me"] = [];
   lines["me"].push(new MyLine(p));
 
   // tell server i started line
