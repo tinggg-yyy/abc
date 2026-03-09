@@ -25,11 +25,14 @@ readyButton.addEventListener("click", function () {
   // inform server of my role (frog and which frog)
   let data = {
     role: "frog",
-    frogIdx: frogIdx, 
+    frogIdx: frogIdx,
   };
   socket.emit("my-role", data);
 
   // listen to server socket messages and play sound in accordance
+  socket.on("make-sound", function () {
+    audioElm.play();
+  });
 
   // TESTING IF JS CAN PLAY THE AUDIO:
   setTimeout(function () {

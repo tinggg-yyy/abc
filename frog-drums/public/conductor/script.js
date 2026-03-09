@@ -23,12 +23,28 @@ socket.emit("my-role", { role: "conductor" });
 socket.on("frogs-already-online", function (data) {
   console.log("already online frogs", data);
   //loop over existig frogs, put them onto the page
+  for (let i = 0; i < data.length; i++) {
+    let frog = data[i];
+    addFrog(frog.id, frog.frogIdx);
+  }
 });
 // handle new frog
+socket.on("new-frog", function (frog) {
+  addFrog(frog.id, frog.frogIdx);
+});
 
 // handle deleting frogs
+socket.on("delete-frog", function (frogID) {
+  console.log(frogID, "disconnected");
+  // find div with the frogID as its id
+  // delete that div
+  let frogDiv = document.querySelector("#A" + frogID); // find div with the socketid of the frog who disconnected
+  if (frogDiv) {
+    frogDiv.remove(); //delete that div
+  }
+});
 
-addFrog("sdfobjweq", 3); // function test
+// addFrog("sdfobjweq", 3); // function test
 
 function addFrog(socketID, frogIdx) {
   let imgWrapper = document.createElement("div");
@@ -49,6 +65,8 @@ function addFrog(socketID, frogIdx) {
       document.querySelector("#A" + socketID).style.opacity = 0.3;
     }
 
-    // tell server we pressed the frig
+    // tell server we pressed the frog
+    console.log("clicked", socketID);
+    socket.emit("trigger-frog", socketID);
   });
 }

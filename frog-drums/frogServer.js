@@ -48,23 +48,31 @@ io.on("connection", (socket) => {
       console.log(frogs);
 
       //     inform conductor of new frog
-    }else if (data.role == "conductor") {
+      if (conductor != undefined) {
+        io.to(conductor).emit("new-frog", frogData);
+      }
+    } else if (data.role == "conductor") {
       // if conductor:
       //     store conductor socket id to conductor global variable
       // tell conductor about all frogs that are online already
-conductor = socket.id;
-socket.emit("frogs-already-online", frogs);
-
+      conductor = socket.id;
+      socket.emit("frogs-already-online", frogs);
     }
   });
 
   // always comes from conductor
   // listen to frogs being triggered
 
-  // check if frog exists
-  // option A: tell that frog to make sounds
-  // option B: check if the frog currently makes sounds
-  //      either tell them to start or stop
+  socket.on("trigger-frog", function (frogID) {
+    // check if frog exists
+
+    // option A: tell that frog to make sounds
+    io.to(frogID).emit("make-sound");
+
+    // option B: check if the frog currently makes sounds
+    //      either tell them to start or stop
+
+  });
 
   // DISCONNECT
   // manage the roles
@@ -90,9 +98,14 @@ socket.emit("frogs-already-online", frogs);
     console.log(frogs);
     // if it's a conductor
     // delete conductor
-
+    if (socket.id == conductor) {
+      conductor = undefined;
+    }
     // if the conductor is still online
     // tell them which frog has been deleted
+    if (conductor != undefined) {
+      io.to(conductor).emit("delete-frog", socket.id);
+    }
   });
 });
 
