@@ -45,7 +45,7 @@ function setup() {
 
   //  or other person breathed (cannot put it in draw(){} or too many listeners => lagging)
   socket.on("user-breathed", function () {
-    fog.fill(255, 5);
+    fog.fill(255, 10);
     fog.noStroke();
     fog.rect(0, 0, width, height);
     // other person breathed, so not show the breath gif for me
@@ -76,7 +76,7 @@ function draw() {
     if (d > 20 && random(1) < 0.25) {
       // if detected breath, fill fog again gradually
 
-      fog.fill(255, 15);
+      fog.fill(255, 10);
       fog.noStroke();
       fog.rect(0, 0, width, height);
 
