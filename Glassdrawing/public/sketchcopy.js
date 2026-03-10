@@ -76,7 +76,7 @@ function draw() {
     if (d > 20 && random(1) < 0.25) {
       // if detected breath, fill fog again gradually
 
-      fog.fill(255, 10);
+      fog.fill(255, 5);
       fog.noStroke();
       fog.rect(0, 0, width, height);
 
