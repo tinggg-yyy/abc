@@ -5,6 +5,8 @@ let faceMesh;
 let options = { maxFaces: 1, refineLandmarks: false, flipped: false };
 let faces = [];
 let lines = {}; // lines object, key is userId, value is array of lines for that user
+let myFog;
+let otherFog;
 
 function preload() {
   faceMesh = ml5.faceMesh(options);
@@ -25,14 +27,17 @@ function setup() {
   capture.hide();
 
   // Fog layer
-  fog = createGraphics(width, height);
-  fog.background(255, 180);
+  myFog = createGraphics(width, height);
+  myFog.background(255, 180);
+  otherFog = createGraphics(width, height);
+  otherFog.background(255, 180);
 
   // Start detecting faces from the webcam video
   faceMesh.detectStart(capture, gotFaces);
 
   // No Fog at first
-  fog.clear();
+  myFog.clear();
+  otherFog.clear();
 
   // Animation Gif to remind people to breathe
   push();
@@ -45,9 +50,9 @@ function setup() {
 
   //  or other person breathed (cannot put it in draw(){} or too many listeners => lagging)
   socket.on("user-breathed", function () {
-    fog.fill(255, 10);
-    fog.noStroke();
-    fog.rect(0, 0, width, height);
+    myFog.fill(255, 15);
+    myFog.noStroke();
+    myFog.rect(0, 0, width, height);
     // other person breathed, so not show the breath gif for me
     breathGif.hide();
   });
@@ -62,6 +67,14 @@ function draw() {
   image(capture, 0, 0, width, (width * capture.height) / capture.width); // camheight<height
   pop();
 
+  // automatically fog disappears
+  myFog.erase(3, 0);
+  myFog.rect(0, 0, width, height);
+  myFog.noErase();
+  otherFog.erase(3, 0);
+  otherFog.rect(0, 0, width, height);
+  otherFog.noErase();
+
   // Face detection
   if (faces.length > 0) {
     let face = faces[0];
@@ -75,10 +88,10 @@ function draw() {
 
     if (d > 20 && random(1) < 0.25) {
       // if detected breath, fill fog again gradually
-
-      fog.fill(255, 10);
-      fog.noStroke();
-      fog.rect(0, 0, width, height);
+      // (here is actually my phone because of behind camera)
+      otherFog.fill(255, 15);
+      otherFog.noStroke();
+      otherFog.rect(0, 0, width, height);
 
       // tell server i breathed
       socket.emit("user-breathed", true);
@@ -90,7 +103,9 @@ function draw() {
 
   // Set transparency of the fog layer
   tint(255, 127);
-  image(fog, 0, 0);
+  image(otherFog, 0, 0);
+  // tint(255, 127);
+  image(myFog, 0, 0);
 }
 
 // Callback function for when faceMesh outputs data
@@ -127,7 +142,7 @@ function touchMoved() {
 
   // Draw the Fog
   let currentPoints = myLines[myLines.length - 1].points;
-  drawOnFog(currentPoints);
+  drawOnFog(myFog, currentPoints);
 
   // tell server about new point
   socket.emit("new-point-on-line", p);
@@ -142,7 +157,7 @@ socket.on("new-point-on-line", function (point) {
   userLines[userLines.length - 1].points.push(flippedPoint);
 
   let currentPoints = userLines[userLines.length - 1].points;
-  drawOnFog(currentPoints);
+  drawOnFog(otherFog, currentPoints);
 });
 
 function touchEnded() {
@@ -161,17 +176,17 @@ socket.on("new-line-finished", function (point) {
   // console.log(userLines);
 });
 
-function drawOnFog(points) {
-  fog.erase(10, 255);
-  fog.strokeWeight(20);
-  fog.stroke(0);
-  fog.noFill();
-  fog.beginShape();
+function drawOnFog(fogLayer, points) {
+  fogLayer.erase(10, 255);
+  fogLayer.strokeWeight(20);
+  fogLayer.stroke(0);
+  fogLayer.noFill();
+  fogLayer.beginShape();
   for (let p of points) {
-    fog.vertex(p[0], p[1]);
+    fogLayer.vertex(p[0], p[1]);
   }
-  fog.endShape();
-  fog.noErase();
+  fogLayer.endShape();
+  fogLayer.noErase();
 }
 
 // Lines Object
@@ -185,10 +200,4 @@ class MyLine {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
-}
-
-function keyPressed() {
-  fog.fill(255, 10);
-  fog.noStroke();
-  fog.rect(0, 0, width, height);
 }
