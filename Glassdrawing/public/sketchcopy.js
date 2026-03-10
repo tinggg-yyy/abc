@@ -1,4 +1,4 @@
-// Reference: https://editor.p5js.org/codingtrain/sketches/Mf74RjP92
+// Mouth Open Detection Reference: https://editor.p5js.org/codingtrain/sketches/Mf74RjP92
 
 let capture;
 let faceMesh;
@@ -33,21 +33,27 @@ function setup() {
 
   // No Fog at first
   fog.clear();
-  // fog.background(255);
 
   // Animation Gif to remind people to breathe
   push();
   breathGif = createImg("assets/breathe4.GIF");
   breathGif.position(width / 2 - 400, height / 2 - 200);
   breathGif.size(800, 400);
-  breathGif.style("filter", "invert(1)"); // turn black to white
+  breathGif.style("filter", "invert(1)"); // invert color
   breathGif.style("transform", "rotate(90deg)");
   pop();
+
+  //  or other person breathed (cannot put it in draw(){} or too many listeners => lagging)
+  socket.on("user-breathed", function () {
+    fog.fill(255, 5);
+    fog.noStroke();
+    fog.rect(0, 0, width, height);
+    // other person breathed, so not show the breath gif for me
+    breathGif.hide();
+  });
 }
 
 function draw() {
-  //   background(0);
-
   // Webcam
   push();
   // scale to fullscreen while maintaining aspect ratio
@@ -69,16 +75,10 @@ function draw() {
 
     if (d > 20 && random(1) < 0.25) {
       // if detected breath, fill fog again gradually
-      // only fill the erased parts around the mouth
 
       fog.fill(255, 10);
       fog.noStroke();
       fog.rect(0, 0, width, height);
-
-      // lines'opacity 0=>180
-      //   for (let line of lines) {
-      //     line.transparencyFactor *= 0.95;
-      //   }
 
       // tell server i breathed
       socket.emit("user-breathed", true);
@@ -87,15 +87,6 @@ function draw() {
       breathGif.hide();
     }
   }
-
-  //  or other person breathed
-  socket.on("user-breathed", function () {
-    fog.fill(255, 5);
-    fog.noStroke();
-    fog.rect(0, 0, width, height);
-    // other person breathed, so not show the breath gif for me
-    breathGif.hide();
-  });
 
   // Set transparency of the fog layer
   tint(255, 127);
@@ -121,7 +112,10 @@ function touchStarted() {
 // or the other phone starts new line:
 socket.on("new-line-started", function (point) {
   if (!lines[point.userId]) lines[point.userId] = [];
-  lines[point.userId].push(new MyLine(point.point));
+  // lines[point.userId].push(new MyLine(point.point));
+  //flip fog
+  let flippedPoint = [point.point[0], height - point.point[1]];
+  lines[point.userId].push(new MyLine(flippedPoint));
 });
 
 // NEW POINT ON LINE
@@ -142,8 +136,10 @@ function touchMoved() {
 socket.on("new-point-on-line", function (point) {
   let userLines = lines[point.userId];
   if (!userLines || userLines.length === 0) return;
-
-  userLines[userLines.length - 1].points.push(point.point);
+  // userLines[userLines.length - 1].points.push(point.point);
+  // flip fog
+  let flippedPoint = [point.point[0], height - point.point[1]];
+  userLines[userLines.length - 1].points.push(flippedPoint);
 
   let currentPoints = userLines[userLines.length - 1].points;
   drawOnFog(currentPoints);
@@ -162,7 +158,7 @@ socket.on("new-line-finished", function (point) {
   let userLines = lines[point.userId];
   if (!userLines || userLines.length === 0) return;
   userLines[userLines.length - 1].finished = true;
-  console.log(userLines);
+  // console.log(userLines);
 });
 
 function drawOnFog(points) {
@@ -182,7 +178,6 @@ function drawOnFog(points) {
 class MyLine {
   constructor(startPoint) {
     this.points = [startPoint];
-    // this.transparencyFactor = 0.3; // 0-1
     this.created = Date.now();
     this.finished = false;
   }

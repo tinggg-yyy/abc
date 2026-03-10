@@ -27,7 +27,7 @@ const io = new Server(HTTPSserver); // start socket.io server
 
 // handling socket.io connections
 io.on("connection", (socket) => {
-  console.log("a user connected:");
+  // console.log("a user connected:");
 
   // only 2 users
   // if (userCount >= 2) {
