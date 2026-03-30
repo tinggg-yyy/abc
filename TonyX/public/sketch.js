@@ -452,7 +452,9 @@ class PersonDot {
 
   recalculate() {
     if (!mapInit || this.currentLat === 0) return;
-    let px = myMap.latLngToPixel(this.currentLat, this.currentLon);
+    let td = traces[this.traceID];
+    if (!td?.originLat) return;
+    let px = gpsToScreen(td, this.currentLat, this.currentLon);
     if (px) {
       this.goalX = px.x;
       this.goalY = px.y;
