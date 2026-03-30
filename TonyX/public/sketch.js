@@ -24,8 +24,6 @@ let myOriginLon = null;
 
 let heroImg;
 let heroMarker;
-let globalOriginLat = null;
-let globalOriginLon = null;
 
 let traces = {};
 let myTraceID = null;
@@ -177,10 +175,11 @@ function handleNewPosition(pos) {
   currentLat = lonlat[1];
   if (pos.coords.heading != null) myHeading = pos.coords.heading;
 
-  // First fix: register origin for this user's trace
+  // First fix: register origin and place this user's local head image
   if (myOriginLat === null) {
     myOriginLat = currentLat;
     myOriginLon = currentLon;
+    heroMarker = new ImageMarker(myOriginLat, myOriginLon, heroImg);
 
     socket.emit("registerOrigin", {
       originLat: myOriginLat,
@@ -222,37 +221,26 @@ function onMapChange() {
   applyMapRotation();
 }
 
-// Create heroMarker at the shared global head GPS position
-function initHeroMarker() {
-  if (heroMarker || globalOriginLat === null) return;
-  heroMarker = new ImageMarker(globalOriginLat, globalOriginLon, heroImg);
-  if (mapInit) heroMarker.recalculate();
-}
-
 // -------------------------------------------------------------
 //  COORDINATE TRANSFORM
 //
-//  Screen position = GPS pixel of the point + headOffset * scale
-//  headOffset anchors the hair root to the scalp ellipse.
-//  Movement displaces pointPx from originPx, growing the hair.
-//  Simplifies to: { x: pointPx.x + hx, y: pointPx.y + hy }
+//  Each trace point is converted to a pixel displacement from its
+//  own GPS origin, then anchored to THIS user's local head position.
+//  Users in different cities all see hair growing from their local head.
 // -------------------------------------------------------------
 function gpsToScreen(traceData, lat, lon) {
-  if (!mapInit || !myMap || !myMap.map || !traceData.originLat || globalOriginLat === null) return null;
+  if (!mapInit || !myMap || !myMap.map || !traceData.originLat || myOriginLat === null) return null;
 
   let scale = Math.pow(2, myMap.map.getZoom() - INIT_ZOOM);
   let hx = traceData.headOffsetX * scale;
   let hy = traceData.headOffsetY * scale;
-  // Convert this trace point to a pixel offset relative to its own GPS origin,
-  // then anchor that offset to the shared global head position.
-  // This makes every user's movement appear on the same head regardless of city.
   let originPx = myMap.latLngToPixel(traceData.originLat, traceData.originLon);
   let pointPx = myMap.latLngToPixel(lat, lon);
-  let globalPx = myMap.latLngToPixel(globalOriginLat, globalOriginLon);
+  let myOriginPx = myMap.latLngToPixel(myOriginLat, myOriginLon);
 
   return {
-    x: globalPx.x + hx + (pointPx.x - originPx.x),
-    y: globalPx.y + hy + (pointPx.y - originPx.y),
+    x: myOriginPx.x + hx + (pointPx.x - originPx.x),
+    y: myOriginPx.y + hy + (pointPx.y - originPx.y),
   };
 }
 
@@ -302,12 +290,6 @@ socket.on("welcome", function (data) {
 });
 
 socket.on("initData", function (data) {
-  if (data.globalOriginLat !== null && data.globalOriginLat !== undefined) {
-    globalOriginLat = data.globalOriginLat;
-    globalOriginLon = data.globalOriginLon;
-    initHeroMarker();
-  }
-
   // 初始化 traces（历史轨迹，包括离线玩家的）
   for (let id in data.traces) {
     if (id === myTraceID) continue;
@@ -364,13 +346,6 @@ socket.on("traceOrigin", function (data) {
   traces[data.traceID].originLat = data.originLat;
   traces[data.traceID].originLon = data.originLon;
   if (mapInit) recalcTrace(traces[data.traceID]);
-});
-
-socket.on("globalOrigin", function (data) {
-  globalOriginLat = data.lat;
-  globalOriginLon = data.lon;
-  initHeroMarker();
-  if (mapInit) onMapChange();
 });
 
 socket.on("locationFromServer", function (data) {
@@ -477,9 +452,7 @@ class PersonDot {
 
   recalculate() {
     if (!mapInit || this.currentLat === 0) return;
-    let td = traces[this.traceID];
-    if (!td?.originLat) return;
-    let px = gpsToScreen(td, this.currentLat, this.currentLon);
+    let px = myMap.latLngToPixel(this.currentLat, this.currentLon);
     if (px) {
       this.goalX = px.x;
       this.goalY = px.y;
