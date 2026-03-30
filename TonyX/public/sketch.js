@@ -1,10 +1,4 @@
-// =============================================================
-//  GPS HAIR PROJECT — sketch.js
-// =============================================================
-
-// =============================================================
-//  CONSTANTS
-// =============================================================
+// GPS HAIR PROJECT — sketch.js
 
 const HEAD_CX = 0.2;
 const HEAD_CY = -0.38;
@@ -14,61 +8,30 @@ const TILT = 0.5;
 const INIT_SIZE = 300;
 const INIT_ZOOM = 16;
 
-// =============================================================
-//  MAP STATE
-// =============================================================
-
 let mappa = new Mappa("Leaflet");
 let myMap;
 let canvas;
 let mapInit = false;
-let mapRotation = 0;
-
-let mappa_options = {
-  lat: 0,
-  lng: 0,
-  zoom: INIT_ZOOM,
-  style:
-    "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}",
-};
-
-// =============================================================
-//  GPS & ORIENTATION STATE
-// =============================================================
 
 let currentLat = 0;
 let currentLon = 0;
+let mapRotation = 0;
 let myHeading = 0;
+let rotateStartAngle = null;
+let rotateStartMapRotation = 0;
 let myOriginLat = null;
 let myOriginLon = null;
 let myOriginAccuracy = Infinity;
 
-// =============================================================
-//  ROTATION GESTURE STATE
-// =============================================================
-
-let rotateStartAngle = null;
-let rotateStartMapRotation = 0;
-
-// =============================================================
-//  HERO IMAGE & MARKER
-// =============================================================
-
 let heroImg;
 let heroMarker;
 
-// =============================================================
-//  MULTIPLAYER STATE
-// =============================================================
-
-let traces = {}; // traceID → trace data (all players, including offline)
-let onlinePlayers = {}; // socketID → { traceID, dot: PersonDot }
+let traces = {};
 let myTraceID = null;
 let mySocketID = null;
 
-// =============================================================
-//  SOCKET SETUP
-// =============================================================
+// onlinePlayers[socketID] = { traceID, dot: PersonDot }
+let onlinePlayers = {};
 
 let socket;
 if (
@@ -80,10 +43,17 @@ if (
   socket = io();
 }
 
-// =============================================================
-//  p5 LIFECYCLE
-// =============================================================
+let mappa_options = {
+  lat: 0,
+  lng: 0,
+  zoom: INIT_ZOOM,
+  style:
+    "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}",
+};
 
+// -------------------------------------------------------------
+//  p5 LIFECYCLE
+// -------------------------------------------------------------
 function preload() {
   heroImg = loadImage("assets/JingWu01.png");
 }
@@ -101,7 +71,13 @@ function draw() {
 
   // Initialize map on first valid GPS fix
   if (!mapInit && GPS_GRANTED && currentLon !== 0) {
-    initMap();
+    mappa_options.lat = currentLat;
+    mappa_options.lng = currentLon;
+    myMap = mappa.tileMap(mappa_options);
+    myMap.overlay(canvas);
+    myMap.onChange(onMapChange);
+    mapInit = true;
+    onMapChange();
   }
 
   noStroke();
@@ -109,7 +85,20 @@ function draw() {
   rect(0, 0, width, height);
 
   if (mapInit) {
-    drawMapContent();
+    push();
+    translate(width / 2, height / 2);
+    rotate(radians(mapRotation));
+    translate(-width / 2, -height / 2);
+    if (heroMarker) {
+      heroMarker.recalculate();
+      heroMarker.display();
+    }
+    for (let id in traces) displayTrace(traces[id]);
+    for (let sid in onlinePlayers) {
+      if (onlinePlayers[sid].dot) onlinePlayers[sid].dot.display();
+    }
+    drawPointers();
+    pop();
   }
 
   drawUI();
@@ -121,58 +110,9 @@ function windowResized() {
   if (mapInit) onMapChange();
 }
 
-// =============================================================
-//  MAP INITIALIZATION
-// =============================================================
-
-function initMap() {
-  mappa_options.lat = currentLat;
-  mappa_options.lng = currentLon;
-  myMap = mappa.tileMap(mappa_options);
-  myMap.overlay(canvas);
-  myMap.onChange(onMapChange);
-  mapInit = true;
-  onMapChange();
-}
-
-// Recalculate all pixel positions when map pans/zooms
-function onMapChange() {
-  if (!myMap || !myMap.map) return;
-  if (heroMarker) heroMarker.recalculate();
-  for (let id in traces) recalcTrace(traces[id]);
-  for (let sid in onlinePlayers) {
-    if (onlinePlayers[sid].dot) onlinePlayers[sid].dot.recalculate();
-  }
-  applyMapRotation();
-}
-
-// =============================================================
-//  MAP CONTENT RENDERING
-// =============================================================
-
-function drawMapContent() {
-  push();
-  translate(width / 2, height / 2);
-  rotate(radians(mapRotation));
-  translate(-width / 2, -height / 2);
-
-  if (heroMarker) {
-    heroMarker.recalculate();
-    heroMarker.display();
-  }
-  for (let id in traces) displayTrace(traces[id]);
-  for (let sid in onlinePlayers) {
-    if (onlinePlayers[sid].dot) onlinePlayers[sid].dot.display();
-  }
-  drawPointers();
-
-  pop();
-}
-
-// =============================================================
+// -------------------------------------------------------------
 //  TWO-FINGER MAP ROTATION
-// =============================================================
-
+// -------------------------------------------------------------
 function setupRotationGesture() {
   document.addEventListener(
     "touchstart",
@@ -227,23 +167,52 @@ function applyMapRotation() {
   tilePane.style.transform = `rotate(${mapRotation}deg)`;
 }
 
-// =============================================================
-//  GPS HANDLING
-// =============================================================
-
+// -------------------------------------------------------------
+//  GPS
+// -------------------------------------------------------------
 function handleNewPosition(pos) {
   let lonlat = fixForChineseMap(pos);
   currentLon = lonlat[0];
   currentLat = lonlat[1];
   if (pos.coords.heading != null) myHeading = pos.coords.heading;
 
-  let accuracy = pos.coords.accuracy;
+  let accuracy = pos.coords.accuracy; // metres
 
+  // First fix: set origin and place the local head image
   if (myOriginLat === null) {
-    setOrigin(accuracy);
+    myOriginLat = currentLat;
+    myOriginLon = currentLon;
+    myOriginAccuracy = accuracy;
+    heroMarker = new ImageMarker(myOriginLat, myOriginLon, heroImg);
+
+    socket.emit("registerOrigin", {
+      originLat: myOriginLat,
+      originLon: myOriginLon,
+    });
+
+    if (myTraceID && traces[myTraceID]) {
+      traces[myTraceID].originLat = myOriginLat;
+      traces[myTraceID].originLon = myOriginLon;
+      if (mapInit) recalcTrace(traces[myTraceID]);
+    }
   } else if (accuracy < myOriginAccuracy * 0.5) {
-    // Significantly more accurate fix — correct stale origin without growing new hair
-    setOrigin(accuracy);
+    // A significantly more accurate fix arrived — update the origin in place.
+    // This corrects a stale or low-accuracy first fix without growing new hair.
+    myOriginLat = currentLat;
+    myOriginLon = currentLon;
+    myOriginAccuracy = accuracy;
+    heroMarker = new ImageMarker(myOriginLat, myOriginLon, heroImg);
+
+    if (myTraceID && traces[myTraceID]) {
+      traces[myTraceID].originLat = myOriginLat;
+      traces[myTraceID].originLon = myOriginLon;
+    }
+
+    socket.emit("registerOrigin", {
+      originLat: myOriginLat,
+      originLon: myOriginLon,
+    });
+
     if (mapInit) onMapChange();
   }
 
@@ -262,35 +231,35 @@ function handleNewPosition(pos) {
   if (mapInit) onMapChange();
 }
 
-function setOrigin(accuracy) {
-  myOriginLat = currentLat;
-  myOriginLon = currentLon;
-  myOriginAccuracy = accuracy;
-  heroMarker = new ImageMarker(myOriginLat, myOriginLon, heroImg);
-
-  socket.emit("registerOrigin", {
-    originLat: myOriginLat,
-    originLon: myOriginLon,
-  });
-
-  if (myTraceID && traces[myTraceID]) {
-    traces[myTraceID].originLat = myOriginLat;
-    traces[myTraceID].originLon = myOriginLon;
-    if (mapInit) recalcTrace(traces[myTraceID]);
+// -------------------------------------------------------------
+//  MAP CHANGE CALLBACK — recalculate all pixel positions
+// -------------------------------------------------------------
+function onMapChange() {
+  if (!myMap || !myMap.map) return;
+  if (heroMarker) heroMarker.recalculate();
+  for (let id in traces) recalcTrace(traces[id]);
+  for (let sid in onlinePlayers) {
+    if (onlinePlayers[sid].dot) onlinePlayers[sid].dot.recalculate();
   }
+  applyMapRotation();
 }
 
-// =============================================================
+// -------------------------------------------------------------
 //  COORDINATE TRANSFORM
 //
 //  Each trace point is converted to a pixel displacement from its
 //  own GPS origin, then anchored to THIS user's local head position.
 //  Users in different cities all see hair growing from their local head.
-// =============================================================
-
+// -------------------------------------------------------------
 function gpsToScreen(traceData, lat, lon) {
-  if (!mapInit || !myMap || !myMap.map) return null;
-  if (!traceData.originLat || myOriginLat === null) return null;
+  if (
+    !mapInit ||
+    !myMap ||
+    !myMap.map ||
+    !traceData.originLat ||
+    myOriginLat === null
+  )
+    return null;
 
   let scale = Math.pow(2, myMap.map.getZoom() - INIT_ZOOM);
   let hx = traceData.headOffsetX * scale;
@@ -305,29 +274,6 @@ function gpsToScreen(traceData, lat, lon) {
   };
 }
 
-// =============================================================
-//  TRACE DATA HELPERS
-// =============================================================
-
-function createTraceData(
-  headOffsetX,
-  headOffsetY,
-  color,
-  originLat,
-  originLon,
-  points,
-) {
-  return {
-    headOffsetX,
-    headOffsetY,
-    color,
-    originLat: originLat || null,
-    originLon: originLon || null,
-    points: points || [],
-    pxPoints: [],
-  };
-}
-
 function addPointToTrace(traceData, lat, lon) {
   let last = traceData.points[traceData.points.length - 1];
   if (
@@ -336,7 +282,6 @@ function addPointToTrace(traceData, lat, lon) {
     Math.abs(last.lon - lon) < 1e-7
   )
     return;
-
   traceData.points.push({ lat, lon });
   if (mapInit && traceData.originLat) {
     let px = gpsToScreen(traceData, lat, lon);
@@ -351,19 +296,22 @@ function recalcTrace(traceData) {
     .filter(Boolean);
 }
 
-// =============================================================
+// -------------------------------------------------------------
 //  SOCKET EVENTS
-// =============================================================
-
+// -------------------------------------------------------------
 socket.on("welcome", function (data) {
   mySocketID = data.socketID;
   myTraceID = data.traceID;
 
-  traces[myTraceID] = createTraceData(
-    data.headOffsetX,
-    data.headOffsetY,
-    data.color,
-  );
+  traces[myTraceID] = {
+    headOffsetX: data.headOffsetX,
+    headOffsetY: data.headOffsetY,
+    color: data.color,
+    originLat: null,
+    originLon: null,
+    points: [],
+    pxPoints: [],
+  };
 
   onlinePlayers[mySocketID] = {
     traceID: myTraceID,
@@ -372,23 +320,24 @@ socket.on("welcome", function (data) {
 });
 
 socket.on("initData", function (data) {
-  // Hydrate traces (all history, including offline players)
+  // 初始化 traces（历史轨迹，包括离线玩家的）
   for (let id in data.traces) {
     if (id === myTraceID) continue;
     let td = data.traces[id];
-    traces[id] = createTraceData(
-      td.headOffsetX,
-      td.headOffsetY,
-      td.color,
-      td.originLat,
-      td.originLon,
-      td.points,
-    );
+    traces[id] = {
+      headOffsetX: td.headOffsetX,
+      headOffsetY: td.headOffsetY,
+      color: td.color,
+      originLat: td.originLat || null,
+      originLon: td.originLon || null,
+      points: td.points || [],
+      pxPoints: [],
+    };
   }
 
-  // Hydrate currently online players
+  // 初始化当前所有在线玩家（修复：之前这里缺失，导致各端 onlinePlayers 数量不一致）
   for (let sid in data.onlinePlayers) {
-    if (sid === mySocketID) continue;
+    if (sid === mySocketID) continue; // 自己已由 welcome 事件处理
     let op = data.onlinePlayers[sid];
     if (!onlinePlayers[sid]) {
       onlinePlayers[sid] = {
@@ -406,11 +355,15 @@ socket.on("initData", function (data) {
 
 socket.on("playerJoined", function (data) {
   if (!traces[data.traceID]) {
-    traces[data.traceID] = createTraceData(
-      data.headOffsetX,
-      data.headOffsetY,
-      data.color,
-    );
+    traces[data.traceID] = {
+      headOffsetX: data.headOffsetX,
+      headOffsetY: data.headOffsetY,
+      color: data.color,
+      originLat: null,
+      originLon: null,
+      points: [],
+      pxPoints: [],
+    };
   }
   onlinePlayers[data.socketID] = {
     traceID: data.traceID,
@@ -442,15 +395,12 @@ socket.on("deletePerson", function (data) {
   delete onlinePlayers[data.socketID];
 });
 
-// =============================================================
-//  TRACE RENDERING
-// =============================================================
-
+// -------------------------------------------------------------
+//  DISPLAY
+// -------------------------------------------------------------
 function displayTrace(td) {
   if (td.pxPoints.length === 0) return;
   push();
-
-  // Draw the hair curve
   if (td.pxPoints.length >= 2) {
     noFill();
     stroke(td.color);
@@ -466,144 +416,17 @@ function displayTrace(td) {
     }
     endShape();
   }
-
   // Root dot at trace origin
   let root = td.pxPoints[0];
   noStroke();
   fill(td.color);
   circle(root.x, root.y, 8);
-
   pop();
 }
 
-// =============================================================
-//  OFF-SCREEN POINTERS — arrows for players outside the viewport
-// =============================================================
-
-function drawPointers() {
-  for (let sid in onlinePlayers) {
-    let dot = onlinePlayers[sid].dot;
-    if (!dot || dot.x === null) continue;
-    if (dot.x > 10 && dot.x < width - 10 && dot.y > 10 && dot.y < height - 10)
-      continue;
-
-    let ang = Math.atan2(dot.y - height / 2, dot.x - width / 2);
-    let pos = pointOnRectEdge(10, width - 10, 10, height - 10, ang);
-
-    push();
-    translate(pos.x, pos.y);
-    rotate(ang - PI / 2);
-    scale(1.4);
-    fill(dot.col);
-    stroke("white");
-    strokeWeight(2);
-    triangle(-4, -4, 0, 5, 4, -4);
-    pop();
-  }
-}
-
-function pointOnRectEdge(x1, x2, y1, y2, angle) {
-  const cx = (x1 + x2) / 2,
-    cy = (y1 + y2) / 2;
-  const dx = Math.cos(angle),
-    dy = Math.sin(angle);
-  const EPS = 1e-12;
-  const sdx = Math.abs(dx) < EPS ? 0 : dx;
-  const sdy = Math.abs(dy) < EPS ? 0 : dy;
-
-  let tx = Infinity,
-    ty = Infinity;
-  if (sdx !== 0) tx = dx > 0 ? (x2 - cx) / dx : (x1 - cx) / dx;
-  if (sdy !== 0) ty = dy > 0 ? (y2 - cy) / dy : (y1 - cy) / dy;
-
-  return { x: cx + Math.min(tx, ty) * dx, y: cy + Math.min(tx, ty) * dy };
-}
-
-// =============================================================
-//  COMPASS — top-right corner, reflects map rotation only
-// =============================================================
-
-function drawCompass() {
-  const r = 38;
-  const cx = width - r - 14;
-  const cy = r + 14;
-
-  push();
-  translate(cx, cy);
-
-  // Background circle
-  noStroke();
-  fill(0, 170);
-  circle(0, 0, r * 2);
-  stroke(255, 60);
-  strokeWeight(1);
-  noFill();
-  circle(0, 0, r * 2);
-
-  // Rotate cardinal letters & needle with map
-  rotate(radians(mapRotation));
-
-  noStroke();
-  textAlign(CENTER, CENTER);
-  textSize(10);
-  fill(255, 80, 80);
-  text("N", 0, -(r - 11));
-  fill(200);
-  text("S", 0, r - 11);
-  fill(200);
-  text("E", r - 11, 0);
-  fill(200);
-  text("W", -(r - 11), 0);
-
-  // Needle
-  noStroke();
-  fill(220, 60, 60);
-  triangle(0, -(r - 6), -4, 2, 4, 2);
-  fill(160);
-  triangle(0, r - 6, -4, 2, 4, 2);
-
-  // Center pin
-  fill(255);
-  circle(0, 0, 5);
-
-  pop();
-}
-
-// =============================================================
-//  UI — bottom-right counters
-// =============================================================
-
-function drawUI() {
-  if (!mapInit) return;
-
-  let labels = [
-    "Hairs: " + Object.keys(traces).length,
-    "Tonies: " + Object.keys(onlinePlayers).length,
-  ];
-  let pad = 8;
-  let boxH = 24;
-  let gap = 6;
-
-  push();
-  textSize(11);
-  for (let i = 0; i < labels.length; i++) {
-    let boxW = textWidth(labels[i]) + pad * 2;
-    let bx = width - boxW - pad;
-    let by = height - (boxH + gap) * (labels.length - i) - pad;
-    noStroke();
-    fill(255);
-    rect(bx, by, boxW, boxH);
-    fill(0);
-    textAlign(LEFT, CENTER);
-    text(labels[i], bx + pad, by + boxH / 2);
-  }
-  pop();
-}
-
-// =============================================================
+// -------------------------------------------------------------
 //  CLASSES
-// =============================================================
-
+// -------------------------------------------------------------
 class ImageMarker {
   constructor(lat, lon, img) {
     this.lat = lat;
@@ -629,7 +452,6 @@ class ImageMarker {
     push();
     imageMode(CENTER);
     image(this.img, this.x, this.y, this.w, this.h);
-
     // Scalp ellipse overlay
     let cx = this.x + HEAD_CX * this.w;
     let cy = this.y + HEAD_CY * this.h;
@@ -641,7 +463,6 @@ class ImageMarker {
     strokeWeight(2);
     ellipse(0, 0, ELLIPSE_RX * 2 * this.w, ELLIPSE_RY * 2 * this.h);
     pop();
-
     pop();
   }
 }
@@ -678,7 +499,6 @@ class PersonDot {
     }
     this.x = lerp(this.x, this.goalX, 0.2);
     this.y = lerp(this.y, this.goalY, 0.2);
-
     push();
     if (this.isMe) {
       translate(this.x, this.y);
@@ -699,9 +519,114 @@ class PersonDot {
   }
 }
 
-// =============================================================
-//  TOUCH EVENT STUBS
-// =============================================================
+// -------------------------------------------------------------
+//  OFF-SCREEN POINTERS — arrows for players outside the viewport
+// -------------------------------------------------------------
+function drawPointers() {
+  for (let sid in onlinePlayers) {
+    let dot = onlinePlayers[sid].dot;
+    if (!dot || dot.x === null) continue;
+    if (dot.x > 10 && dot.x < width - 10 && dot.y > 10 && dot.y < height - 10)
+      continue;
+    let ang = Math.atan2(dot.y - height / 2, dot.x - width / 2);
+    let pos = pointOnRectEdge(10, width - 10, 10, height - 10, ang);
+    push();
+    translate(pos.x, pos.y);
+    rotate(ang - PI / 2);
+    scale(1.4);
+    fill(dot.col);
+    stroke("white");
+    strokeWeight(2);
+    triangle(-4, -4, 0, 5, 4, -4);
+    pop();
+  }
+}
+
+function pointOnRectEdge(x1, x2, y1, y2, angle) {
+  const cx = (x1 + x2) / 2,
+    cy = (y1 + y2) / 2;
+  const dx = Math.cos(angle),
+    dy = Math.sin(angle);
+  const EPS = 1e-12;
+  const sdx = Math.abs(dx) < EPS ? 0 : dx;
+  const sdy = Math.abs(dy) < EPS ? 0 : dy;
+  let tx = Infinity,
+    ty = Infinity;
+  if (sdx !== 0) tx = dx > 0 ? (x2 - cx) / dx : (x1 - cx) / dx;
+  if (sdy !== 0) ty = dy > 0 ? (y2 - cy) / dy : (y1 - cy) / dy;
+  return { x: cx + Math.min(tx, ty) * dx, y: cy + Math.min(tx, ty) * dy };
+}
+
+// -------------------------------------------------------------
+//  COMPASS — top-right corner, reflects map rotation only
+// -------------------------------------------------------------
+function drawCompass() {
+  const r = 38;
+  const cx = width - r - 14;
+  const cy = r + 14;
+
+  push();
+  translate(cx, cy);
+
+  noStroke();
+  fill(0, 170);
+  circle(0, 0, r * 2);
+  stroke(255, 60);
+  strokeWeight(1);
+  noFill();
+  circle(0, 0, r * 2);
+
+  rotate(radians(mapRotation));
+
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textSize(10);
+  fill(255, 80, 80);
+  text("N", 0, -(r - 11));
+  fill(200);
+  text("S", 0, r - 11);
+  text("E", r - 11, 0);
+  text("W", -(r - 11), 0);
+
+  noStroke();
+  fill(220, 60, 60);
+  triangle(0, -(r - 6), -4, 2, 4, 2);
+  fill(160);
+  triangle(0, r - 6, -4, 2, 4, 2);
+
+  fill(255);
+  circle(0, 0, 5);
+
+  pop();
+}
+
+// -------------------------------------------------------------
+//  UI — bottom-right counters
+// -------------------------------------------------------------
+function drawUI() {
+  if (!mapInit) return;
+  let labels = [
+    "Hairs: " + Object.keys(traces).length,
+    "Tonies: " + Object.keys(onlinePlayers).length,
+  ];
+  let pad = 8;
+  let boxH = 24;
+  let gap = 6;
+  push();
+  textSize(11);
+  for (let i = 0; i < labels.length; i++) {
+    let boxW = textWidth(labels[i]) + pad * 2;
+    let bx = width - boxW - pad;
+    let by = height - (boxH + gap) * (labels.length - i) - pad;
+    noStroke();
+    fill(255);
+    rect(bx, by, boxW, boxH);
+    fill(0);
+    textAlign(LEFT, CENTER);
+    text(labels[i], bx + pad, by + boxH / 2);
+  }
+  pop();
+}
 
 function touchStarted() {
   if (mapInit)
