@@ -24,6 +24,8 @@ let myOriginLon = null;
 
 let heroImg;
 let heroMarker;
+let globalOriginLat = null;
+let globalOriginLon = null;
 
 let traces = {};
 let myTraceID = null;
@@ -175,11 +177,10 @@ function handleNewPosition(pos) {
   currentLat = lonlat[1];
   if (pos.coords.heading != null) myHeading = pos.coords.heading;
 
-  // First fix: register origin and create hero marker
+  // First fix: register origin for this user's trace
   if (myOriginLat === null) {
     myOriginLat = currentLat;
     myOriginLon = currentLon;
-    heroMarker = new ImageMarker(myOriginLat, myOriginLon, heroImg);
 
     socket.emit("registerOrigin", {
       originLat: myOriginLat,
@@ -219,6 +220,13 @@ function onMapChange() {
     if (onlinePlayers[sid].dot) onlinePlayers[sid].dot.recalculate();
   }
   applyMapRotation();
+}
+
+// Create heroMarker at the shared global head GPS position
+function initHeroMarker() {
+  if (heroMarker || globalOriginLat === null) return;
+  heroMarker = new ImageMarker(globalOriginLat, globalOriginLon, heroImg);
+  if (mapInit) heroMarker.recalculate();
 }
 
 // -------------------------------------------------------------
@@ -290,6 +298,12 @@ socket.on("welcome", function (data) {
 });
 
 socket.on("initData", function (data) {
+  if (data.globalOriginLat !== null && data.globalOriginLat !== undefined) {
+    globalOriginLat = data.globalOriginLat;
+    globalOriginLon = data.globalOriginLon;
+    initHeroMarker();
+  }
+
   // 初始化 traces（历史轨迹，包括离线玩家的）
   for (let id in data.traces) {
     if (id === myTraceID) continue;
@@ -346,6 +360,13 @@ socket.on("traceOrigin", function (data) {
   traces[data.traceID].originLat = data.originLat;
   traces[data.traceID].originLon = data.originLon;
   if (mapInit) recalcTrace(traces[data.traceID]);
+});
+
+socket.on("globalOrigin", function (data) {
+  globalOriginLat = data.lat;
+  globalOriginLon = data.lon;
+  initHeroMarker();
+  if (mapInit) onMapChange();
 });
 
 socket.on("locationFromServer", function (data) {

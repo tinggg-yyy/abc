@@ -42,6 +42,8 @@ function randomHeadOffset() {
 
 let players = {};
 let persistedTraces = {};
+let globalOriginLat = null;
+let globalOriginLon = null;
 
 // -------------------------------------------------------------
 //  SOCKET EVENTS
@@ -82,6 +84,8 @@ io.on("connection", (socket) => {
   socket.emit("initData", {
     traces: persistedTraces,
     myTraceID: traceID,
+    globalOriginLat,
+    globalOriginLon,
     onlinePlayers: Object.fromEntries(
       Object.entries(players).map(([sid, p]) => [
         sid,
@@ -112,6 +116,13 @@ io.on("connection", (socket) => {
     persistedTraces[traceID].originLon = data.originLon;
     players[socket.id].originLat = data.originLat;
     players[socket.id].originLon = data.originLon;
+
+    // First user to register sets the global head position for everyone
+    if (globalOriginLat === null) {
+      globalOriginLat = data.originLat;
+      globalOriginLon = data.originLon;
+      io.emit("globalOrigin", { lat: globalOriginLat, lon: globalOriginLon });
+    }
 
     socket.broadcast.emit("traceOrigin", {
       traceID,
