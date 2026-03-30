@@ -252,7 +252,14 @@ function onMapChange() {
 //  Users in different cities all see hair growing from their local head.
 // -------------------------------------------------------------
 function gpsToScreen(traceData, lat, lon) {
-  if (!mapInit || !myMap || !myMap.map || !traceData.originLat || myOriginLat === null) return null;
+  if (
+    !mapInit ||
+    !myMap ||
+    !myMap.map ||
+    !traceData.originLat ||
+    myOriginLat === null
+  )
+    return null;
 
   let scale = Math.pow(2, myMap.map.getZoom() - INIT_ZOOM);
   let hx = traceData.headOffsetX * scale;
@@ -445,17 +452,17 @@ class ImageMarker {
     push();
     imageMode(CENTER);
     image(this.img, this.x, this.y, this.w, this.h);
-    // Scalp ellipse overlay
-    let cx = this.x + HEAD_CX * this.w;
-    let cy = this.y + HEAD_CY * this.h;
-    push();
-    translate(cx, cy);
-    rotate(TILT);
-    noFill();
-    stroke("red");
-    strokeWeight(2);
-    ellipse(0, 0, ELLIPSE_RX * 2 * this.w, ELLIPSE_RY * 2 * this.h);
-    pop();
+    // // Scalp ellipse overlay
+    // let cx = this.x + HEAD_CX * this.w;
+    // let cy = this.y + HEAD_CY * this.h;
+    // push();
+    // translate(cx, cy);
+    // rotate(TILT);
+    // noFill();
+    // stroke("red");
+    // strokeWeight(2);
+    // ellipse(0, 0, ELLIPSE_RX * 2 * this.w, ELLIPSE_RY * 2 * this.h);
+    // pop();
     pop();
   }
 }
