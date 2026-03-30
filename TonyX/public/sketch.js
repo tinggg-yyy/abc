@@ -23,13 +23,6 @@ let myOriginLat = null;
 let myOriginLon = null;
 let myOriginAccuracy = Infinity;
 
-// FIX 3: GPS smoothing — EMA (exponential moving average) + accuracy gate
-const GPS_EMA_ALPHA = 0.35; // smoothing factor (0 = ignore new, 1 = no smoothing)
-const GPS_MIN_ACCURACY = 100; // ignore fixes worse than 100 m
-const GPS_MIN_MOVE_DEG = 3e-6; // ~0.33 m — suppress jitter smaller than this
-let smoothLat = null;
-let smoothLon = null;
-
 let heroImg;
 let heroMarker;
 
@@ -179,28 +172,11 @@ function applyMapRotation() {
 // -------------------------------------------------------------
 function handleNewPosition(pos) {
   let lonlat = fixForChineseMap(pos);
-  let rawLon = lonlat[0];
-  let rawLat = lonlat[1];
+  currentLon = lonlat[0];
+  currentLat = lonlat[1];
   if (pos.coords.heading != null) myHeading = pos.coords.heading;
 
   let accuracy = pos.coords.accuracy; // metres
-
-  // FIX 3: discard very inaccurate fixes
-  if (accuracy > GPS_MIN_ACCURACY) return;
-
-  // FIX 3: EMA smoothing
-  if (smoothLat === null) {
-    smoothLat = rawLat;
-    smoothLon = rawLon;
-  } else {
-    // Blend: weight accurate fixes more heavily
-    let a = GPS_EMA_ALPHA;
-    smoothLat = smoothLat + a * (rawLat - smoothLat);
-    smoothLon = smoothLon + a * (rawLon - smoothLon);
-  }
-
-  currentLat = smoothLat;
-  currentLon = smoothLon;
 
   // First fix: set origin and place the local head image
   if (myOriginLat === null) {
@@ -230,11 +206,6 @@ function handleNewPosition(pos) {
     if (myTraceID && traces[myTraceID]) {
       traces[myTraceID].originLat = myOriginLat;
       traces[myTraceID].originLon = myOriginLon;
-      // FIX 1: keep the first trace point pinned to the new origin
-      // so the root dot stays on the scalp ellipse
-      if (traces[myTraceID].points.length > 0) {
-        traces[myTraceID].points[0] = { lat: myOriginLat, lon: myOriginLon };
-      }
     }
 
     socket.emit("registerOrigin", {
@@ -281,14 +252,7 @@ function onMapChange() {
 //  Users in different cities all see hair growing from their local head.
 // -------------------------------------------------------------
 function gpsToScreen(traceData, lat, lon) {
-  if (
-    !mapInit ||
-    !myMap ||
-    !myMap.map ||
-    !traceData.originLat ||
-    myOriginLat === null
-  )
-    return null;
+  if (!mapInit || !myMap || !myMap.map || !traceData.originLat || myOriginLat === null) return null;
 
   let scale = Math.pow(2, myMap.map.getZoom() - INIT_ZOOM);
   let hx = traceData.headOffsetX * scale;
@@ -305,11 +269,10 @@ function gpsToScreen(traceData, lat, lon) {
 
 function addPointToTrace(traceData, lat, lon) {
   let last = traceData.points[traceData.points.length - 1];
-  // FIX 3: use GPS_MIN_MOVE_DEG (~0.33 m) to suppress GPS jitter
   if (
     last &&
-    Math.abs(last.lat - lat) < GPS_MIN_MOVE_DEG &&
-    Math.abs(last.lon - lon) < GPS_MIN_MOVE_DEG
+    Math.abs(last.lat - lat) < 1e-7 &&
+    Math.abs(last.lon - lon) < 1e-7
   )
     return;
   traceData.points.push({ lat, lon });
@@ -369,15 +332,6 @@ socket.on("initData", function (data) {
   for (let sid in data.onlinePlayers) {
     if (sid === mySocketID) continue; // 自己已由 welcome 事件处理
     let op = data.onlinePlayers[sid];
-    // FIX 2b: remove any stale entry with the same traceID before adding
-    for (let existingSid in onlinePlayers) {
-      if (
-        existingSid !== sid &&
-        onlinePlayers[existingSid].traceID === op.traceID
-      ) {
-        delete onlinePlayers[existingSid];
-      }
-    }
     if (!onlinePlayers[sid]) {
       onlinePlayers[sid] = {
         traceID: op.traceID,
@@ -403,16 +357,6 @@ socket.on("playerJoined", function (data) {
       points: [],
       pxPoints: [],
     };
-  }
-  // FIX 2: remove any stale entry with the same traceID (player reconnected
-  // with a new socketID before the old deletePerson arrived)
-  for (let existingSid in onlinePlayers) {
-    if (
-      existingSid !== data.socketID &&
-      onlinePlayers[existingSid].traceID === data.traceID
-    ) {
-      delete onlinePlayers[existingSid];
-    }
   }
   onlinePlayers[data.socketID] = {
     traceID: data.traceID,
