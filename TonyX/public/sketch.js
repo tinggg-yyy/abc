@@ -21,6 +21,7 @@ let rotateStartAngle = null;
 let rotateStartMapRotation = 0;
 let myOriginLat = null;
 let myOriginLon = null;
+let myOriginAccuracy = Infinity;
 
 let heroImg;
 let heroMarker;
@@ -175,10 +176,13 @@ function handleNewPosition(pos) {
   currentLat = lonlat[1];
   if (pos.coords.heading != null) myHeading = pos.coords.heading;
 
-  // First fix: register origin and place this user's local head image
+  let accuracy = pos.coords.accuracy; // metres
+
+  // First fix: set origin and place the local head image
   if (myOriginLat === null) {
     myOriginLat = currentLat;
     myOriginLon = currentLon;
+    myOriginAccuracy = accuracy;
     heroMarker = new ImageMarker(myOriginLat, myOriginLon, heroImg);
 
     socket.emit("registerOrigin", {
@@ -191,6 +195,25 @@ function handleNewPosition(pos) {
       traces[myTraceID].originLon = myOriginLon;
       if (mapInit) recalcTrace(traces[myTraceID]);
     }
+  } else if (accuracy < myOriginAccuracy * 0.5) {
+    // A significantly more accurate fix arrived — update the origin in place.
+    // This corrects a stale or low-accuracy first fix without growing new hair.
+    myOriginLat = currentLat;
+    myOriginLon = currentLon;
+    myOriginAccuracy = accuracy;
+    heroMarker = new ImageMarker(myOriginLat, myOriginLon, heroImg);
+
+    if (myTraceID && traces[myTraceID]) {
+      traces[myTraceID].originLat = myOriginLat;
+      traces[myTraceID].originLon = myOriginLon;
+    }
+
+    socket.emit("registerOrigin", {
+      originLat: myOriginLat,
+      originLon: myOriginLon,
+    });
+
+    if (mapInit) onMapChange();
   }
 
   if (myTraceID && traces[myTraceID]) {

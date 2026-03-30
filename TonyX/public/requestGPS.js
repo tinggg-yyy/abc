@@ -1,8 +1,8 @@
 let GPS_GRANTED = false;
 let GPS_options = {
     enableHighAccuracy: true,
-    timeout: 5000,
-    maximumAge: 10000,
+    timeout: 10000,
+    maximumAge: 0,        // never use cached position — always acquire a fresh fix
   };
 
 function requestGPS() {
