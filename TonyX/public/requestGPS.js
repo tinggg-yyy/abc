@@ -35,6 +35,40 @@ function report(state) {
   console.log(`Permission ${state}`);
 }
 
+function requestOrientation() {
+  const setup = () => {
+    // iOS: webkitCompassHeading via deviceorientation
+    window.addEventListener("deviceorientation", (e) => {
+      if (e.webkitCompassHeading != null) {
+        myHeading = e.webkitCompassHeading;
+      }
+    });
+    // Android: deviceorientationabsolute (true north)
+    window.addEventListener("deviceorientationabsolute", (e) => {
+      if (e.alpha != null) {
+        myHeading = (360 - e.alpha) % 360;
+      }
+    });
+    console.log("Device orientation listeners added");
+  };
+
+  if (
+    typeof DeviceOrientationEvent !== "undefined" &&
+    typeof DeviceOrientationEvent.requestPermission === "function"
+  ) {
+    // iOS 13+ requires explicit permission from a user gesture
+    DeviceOrientationEvent.requestPermission()
+      .then((state) => {
+        console.log("DeviceOrientation permission:", state);
+        if (state === "granted") setup();
+      })
+      .catch(console.error);
+  } else {
+    // Android / desktop — no permission needed
+    setup();
+  }
+}
+
 
 
 // Functions below seem to work for Chinese Maps:

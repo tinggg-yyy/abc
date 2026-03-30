@@ -1,14 +1,3 @@
-// let socket = io();
-// socket connection that works locally and on the server:
-if (
-  location.hostname.toLowerCase().startsWith("browsercircus") ||
-  location.hostname.toLowerCase().startsWith("www")
-) {
-  socket = io({ path: "/ting/port-4280/socket.io" }); // e.g. '/leon/port-4100/socket.io' or '/socket.io'
-} else {
-  socket = io();
-}
-
 // GPS HAIR PROJECT — server.js
 
 const express = require("express");
@@ -89,8 +78,24 @@ io.on("connection", (socket) => {
     color: COLOR,
   });
 
-  // Send full trace history (including offline players) to the newcomer
-  socket.emit("initData", { traces: persistedTraces, myTraceID: traceID });
+  // Send full trace history + current online players to the newcomer
+  socket.emit("initData", {
+    traces: persistedTraces,
+    myTraceID: traceID,
+    onlinePlayers: Object.fromEntries(
+      Object.entries(players).map(([sid, p]) => [
+        sid,
+        {
+          traceID: p.traceID,
+          headOffsetX: p.headOffsetX,
+          headOffsetY: p.headOffsetY,
+          color: p.color,
+          currentLat: p.currentLat,
+          currentLon: p.currentLon,
+        },
+      ]),
+    ),
+  });
 
   // Notify existing clients of the new player
   socket.broadcast.emit("playerJoined", {

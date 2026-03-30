@@ -15,9 +15,8 @@ let mapInit = false;
 
 let currentLat = 0;
 let currentLon = 0;
-let currentHeading = null; // GPS heading (fallback)
-let deviceHeading = null; // compass heading from DeviceOrientation
-let mapRotation = 0; // current CSS rotation of map in degrees
+let mapRotation = 0;
+let myHeading = 0;
 let rotateStartAngle = null;
 let rotateStartMapRotation = 0;
 let myOriginLat = null;
@@ -34,8 +33,11 @@ let mySocketID = null;
 let onlinePlayers = {};
 
 let socket;
-if (location.hostname.toLowerCase().startsWith("browsercircus")) {
-  socket = io({ path: "/gps-hair/socket.io" });
+if (
+  location.hostname.toLowerCase().startsWith("browsercircus") ||
+  location.hostname.toLowerCase().startsWith("www")
+) {
+  socket = io({ path: "/ting/port-4280/socket.io" });
 } else {
   socket = io();
 }
@@ -60,7 +62,6 @@ function setup() {
   canvas.parent("p5-canvas-container");
   textAlign(CENTER, CENTER);
   textSize(11);
-  initCompass();
   setupRotationGesture();
 }
 
@@ -83,7 +84,6 @@ function draw() {
   rect(0, 0, width, height);
 
   if (mapInit) {
-    // Rotate map content to match tile pane rotation
     push();
     translate(width / 2, height / 2);
     rotate(radians(mapRotation));
@@ -100,55 +100,12 @@ function draw() {
     pop();
   }
 
-  // UI drawn without rotation — stays fixed on screen
   drawUI();
   if (GPS_GRANTED) drawCompass();
 }
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
-  if (mapInit) onMapChange();
-}
-
-// -------------------------------------------------------------
-//  GPS
-// -------------------------------------------------------------
-function handleNewPosition(pos) {
-  let lonlat = fixForChineseMap(pos);
-  currentLon = lonlat[0];
-  currentLat = lonlat[1];
-  currentHeading = pos.coords.heading;
-
-  // First fix: register origin and create hero marker
-  if (myOriginLat === null) {
-    myOriginLat = currentLat;
-    myOriginLon = currentLon;
-    heroMarker = new ImageMarker(myOriginLat, myOriginLon, heroImg);
-
-    socket.emit("registerOrigin", {
-      originLat: myOriginLat,
-      originLon: myOriginLon,
-    });
-
-    if (myTraceID && traces[myTraceID]) {
-      traces[myTraceID].originLat = myOriginLat;
-      traces[myTraceID].originLon = myOriginLon;
-      if (mapInit) recalcTrace(traces[myTraceID]);
-    }
-  }
-
-  if (myTraceID && traces[myTraceID]) {
-    addPointToTrace(traces[myTraceID], currentLat, currentLon);
-  }
-
-  if (mySocketID && onlinePlayers[mySocketID]?.dot) {
-    let dot = onlinePlayers[mySocketID].dot;
-    dot.currentLat = currentLat;
-    dot.currentLon = currentLon;
-    if (mapInit) dot.recalculate();
-  }
-
-  socket.emit("locationFromClient", { lat: currentLat, lon: currentLon });
   if (mapInit) onMapChange();
 }
 
@@ -202,8 +159,6 @@ function applyMapRotation() {
   if (!mapInit || !myMap?.map) return;
   const tilePane = myMap.map.getPanes().tilePane;
   const mapPane = myMap.map.getPanes().mapPane;
-  // Map pane is translated by Leaflet for panning.
-  // Rotate tile pane around the screen centre expressed in tile-pane coordinates.
   const r = mapPane.getBoundingClientRect();
   const ox = width / 2 - r.left;
   const oy = height / 2 - r.top;
@@ -212,54 +167,45 @@ function applyMapRotation() {
 }
 
 // -------------------------------------------------------------
-//  DEVICE ORIENTATION COMPASS
+//  GPS
 // -------------------------------------------------------------
-// Called by the "开始" button — requests GPS + compass in one user gesture
-function requestAll() {
-  requestGPS();
-  // Must be called synchronously inside the click handler for iOS to show the dialog
-  if (typeof DeviceOrientationEvent?.requestPermission === "function") {
-    DeviceOrientationEvent.requestPermission()
-      .then((res) => {
-        if (res === "granted") _attachOrientationListeners();
-        else console.warn("Compass permission denied");
-      })
-      .catch(console.error);
-  }
-  document.getElementById("startBtn").style.display = "none";
-}
+function handleNewPosition(pos) {
+  let lonlat = fixForChineseMap(pos);
+  currentLon = lonlat[0];
+  currentLat = lonlat[1];
+  if (pos.coords.heading != null) myHeading = pos.coords.heading;
 
-function initCompass() {
-  if (typeof DeviceOrientationEvent === "undefined") return;
-  if (typeof DeviceOrientationEvent.requestPermission !== "function") {
-    // Android / desktop: no permission dialog needed
-    _attachOrientationListeners();
-  }
-  // iOS: waits for the button click in requestAll()
-}
+  // First fix: register origin and create hero marker
+  if (myOriginLat === null) {
+    myOriginLat = currentLat;
+    myOriginLon = currentLon;
+    heroMarker = new ImageMarker(myOriginLat, myOriginLon, heroImg);
 
-function _attachOrientationListeners() {
-  window.addEventListener("deviceorientationabsolute", handleOrientation, true);
-  window.addEventListener("deviceorientation", handleOrientation, true);
-}
+    socket.emit("registerOrigin", {
+      originLat: myOriginLat,
+      originLon: myOriginLon,
+    });
 
-function handleOrientation(event) {
-  if (event.webkitCompassHeading != null) {
-    // iOS: degrees clockwise from magnetic north, 0–360
-    deviceHeading = event.webkitCompassHeading;
-  } else if (event.absolute && event.alpha != null) {
-    // Android absolute: alpha is counterclockwise from north → flip
-    deviceHeading = (360 - event.alpha) % 360;
+    if (myTraceID && traces[myTraceID]) {
+      traces[myTraceID].originLat = myOriginLat;
+      traces[myTraceID].originLon = myOriginLon;
+      if (mapInit) recalcTrace(traces[myTraceID]);
+    }
   }
-  // Ignore non-absolute deviceorientation events (relative, not useful)
-  console.log(
-    "orientation:",
-    event.webkitCompassHeading,
-    event.alpha,
-    event.absolute,
-    "→ deviceHeading:",
-    deviceHeading,
-  );
+
+  if (myTraceID && traces[myTraceID]) {
+    addPointToTrace(traces[myTraceID], currentLat, currentLon);
+  }
+
+  if (mySocketID && onlinePlayers[mySocketID]?.dot) {
+    let dot = onlinePlayers[mySocketID].dot;
+    dot.currentLat = currentLat;
+    dot.currentLon = currentLon;
+    if (mapInit) dot.recalculate();
+  }
+
+  socket.emit("locationFromClient", { lat: currentLat, lon: currentLon });
+  if (mapInit) onMapChange();
 }
 
 // -------------------------------------------------------------
@@ -272,7 +218,7 @@ function onMapChange() {
   for (let sid in onlinePlayers) {
     if (onlinePlayers[sid].dot) onlinePlayers[sid].dot.recalculate();
   }
-  applyMapRotation(); // keep tile-pane origin synced after pan/zoom
+  applyMapRotation();
 }
 
 // -------------------------------------------------------------
@@ -344,6 +290,7 @@ socket.on("welcome", function (data) {
 });
 
 socket.on("initData", function (data) {
+  // 初始化 traces（历史轨迹，包括离线玩家的）
   for (let id in data.traces) {
     if (id === myTraceID) continue;
     let td = data.traces[id];
@@ -357,6 +304,22 @@ socket.on("initData", function (data) {
       pxPoints: [],
     };
   }
+
+  // 初始化当前所有在线玩家（修复：之前这里缺失，导致各端 onlinePlayers 数量不一致）
+  for (let sid in data.onlinePlayers) {
+    if (sid === mySocketID) continue; // 自己已由 welcome 事件处理
+    let op = data.onlinePlayers[sid];
+    if (!onlinePlayers[sid]) {
+      onlinePlayers[sid] = {
+        traceID: op.traceID,
+        dot: new PersonDot(op.color, op.traceID, false),
+      };
+      onlinePlayers[sid].dot.currentLat = op.currentLat;
+      onlinePlayers[sid].dot.currentLon = op.currentLon;
+      if (mapInit) onlinePlayers[sid].dot.recalculate();
+    }
+  }
+
   if (mapInit) onMapChange();
 });
 
@@ -507,18 +470,20 @@ class PersonDot {
     this.x = lerp(this.x, this.goalX, 0.2);
     this.y = lerp(this.y, this.goalY, 0.2);
     push();
-    noFill();
-    stroke(255, 255, 255, 100);
-    strokeWeight(5);
-    circle(this.x, this.y, 24);
-    noStroke();
-    fill(this.col);
-    circle(this.x, this.y, 16);
-    fill(255);
-    circle(this.x, this.y, 6);
     if (this.isMe) {
-      textSize(9);
-      text("ME", this.x, this.y);
+      translate(this.x, this.y);
+      rotate(radians(myHeading));
+      stroke(255);
+      strokeWeight(2);
+      fill(this.col);
+      triangle(0, -16, -8, 9, 8, 9);
+      noStroke();
+      fill(255);
+      circle(0, 3, 5);
+    } else {
+      noStroke();
+      fill(0);
+      circle(this.x, this.y, 8);
     }
     pop();
   }
@@ -563,28 +528,16 @@ function pointOnRectEdge(x1, x2, y1, y2, angle) {
 }
 
 // -------------------------------------------------------------
-//  COMPASS — top-right corner
-//  Primary: DeviceOrientationEvent (real compass, works instantly).
-//  Fallback: GPS heading (only when moving).
-//  iOS needs a tap before permission is granted.
+//  COMPASS — top-right corner, reflects map rotation only
 // -------------------------------------------------------------
 function drawCompass() {
   const r = 38;
   const cx = width - r - 14;
   const cy = r + 14;
 
-  // Best available heading source
-  let heading = null;
-  if (deviceHeading !== null) {
-    heading = deviceHeading;
-  } else if (currentHeading !== null && !isNaN(currentHeading)) {
-    heading = currentHeading;
-  }
-
   push();
   translate(cx, cy);
 
-  // Background
   noStroke();
   fill(0, 170);
   circle(0, 0, r * 2);
@@ -593,10 +546,8 @@ function drawCompass() {
   noFill();
   circle(0, 0, r * 2);
 
-  // Rotate so N points toward true north
-  if (heading !== null) rotate(radians(-heading));
+  rotate(radians(mapRotation));
 
-  // Cardinal labels
   noStroke();
   textAlign(CENTER, CENTER);
   textSize(10);
@@ -607,30 +558,16 @@ function drawCompass() {
   text("E", r - 11, 0);
   text("W", -(r - 11), 0);
 
-  // Needle — red tip (north), grey tail (south)
   noStroke();
   fill(220, 60, 60);
   triangle(0, -(r - 6), -4, 2, 4, 2);
   fill(160);
   triangle(0, r - 6, -4, 2, 4, 2);
 
-  // Centre dot
   fill(255);
   circle(0, 0, 5);
 
   pop();
-
-  // Debug: degree value below circle confirms data is flowing
-  if (heading !== null) {
-    push();
-    translate(cx, cy);
-    noStroke();
-    textAlign(CENTER, CENTER);
-    textSize(9);
-    fill(255, 170);
-    text(Math.round(heading) + "°", 0, r + 11);
-    pop();
-  }
 }
 
 // -------------------------------------------------------------
