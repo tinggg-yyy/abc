@@ -252,14 +252,7 @@ function onMapChange() {
 //  Users in different cities all see hair growing from their local head.
 // -------------------------------------------------------------
 function gpsToScreen(traceData, lat, lon) {
-  if (
-    !mapInit ||
-    !myMap ||
-    !myMap.map ||
-    !traceData.originLat ||
-    myOriginLat === null
-  )
-    return null;
+  if (!mapInit || !myMap || !myMap.map || !traceData.originLat || myOriginLat === null) return null;
 
   let scale = Math.pow(2, myMap.map.getZoom() - INIT_ZOOM);
   let hx = traceData.headOffsetX * scale;

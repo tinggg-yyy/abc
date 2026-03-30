@@ -25,8 +25,6 @@ const ELLIPSE_RX = 0.17;
 const ELLIPSE_RY = 0.11;
 const TILT = 0.5;
 const INIT_SIZE = 300;
-const imgBuf = fs.readFileSync("public/assets/JingWu01.png");
-const IMG_ASPECT = imgBuf.readUInt32BE(20) / imgBuf.readUInt32BE(16);
 
 // Place the hair root at a random point within the scalp ellipse
 function randomHeadOffset() {
@@ -34,14 +32,11 @@ function randomHeadOffset() {
   let r = Math.sqrt(Math.random());
   let ex = ELLIPSE_RX * r * Math.cos(angle);
   let ey = ELLIPSE_RY * r * Math.sin(angle);
-  // Rotate in pixel space where Y is scaled by aspect ratio
-  let pxX = ex * INIT_SIZE;
-  let pxY = ey * INIT_SIZE * IMG_ASPECT;
-  let rx = pxX * Math.cos(TILT) - pxY * Math.sin(TILT);
-  let ry = pxX * Math.sin(TILT) + pxY * Math.cos(TILT);
+  let rx = ex * Math.cos(TILT) - ey * Math.sin(TILT);
+  let ry = ex * Math.sin(TILT) + ey * Math.cos(TILT);
   return {
-    headOffsetX: HEAD_CX * INIT_SIZE + rx,
-    headOffsetY: HEAD_CY * INIT_SIZE * IMG_ASPECT + ry,
+    headOffsetX: (HEAD_CX + rx) * INIT_SIZE,
+    headOffsetY: (HEAD_CY + ry) * INIT_SIZE,
   };
 }
 
