@@ -238,17 +238,21 @@ function initHeroMarker() {
 //  Simplifies to: { x: pointPx.x + hx, y: pointPx.y + hy }
 // -------------------------------------------------------------
 function gpsToScreen(traceData, lat, lon) {
-  if (!mapInit || !myMap || !myMap.map || !traceData.originLat) return null;
+  if (!mapInit || !myMap || !myMap.map || !traceData.originLat || globalOriginLat === null) return null;
 
   let scale = Math.pow(2, myMap.map.getZoom() - INIT_ZOOM);
   let hx = traceData.headOffsetX * scale;
   let hy = traceData.headOffsetY * scale;
+  // Convert this trace point to a pixel offset relative to its own GPS origin,
+  // then anchor that offset to the shared global head position.
+  // This makes every user's movement appear on the same head regardless of city.
   let originPx = myMap.latLngToPixel(traceData.originLat, traceData.originLon);
   let pointPx = myMap.latLngToPixel(lat, lon);
+  let globalPx = myMap.latLngToPixel(globalOriginLat, globalOriginLon);
 
   return {
-    x: originPx.x + hx + (pointPx.x - originPx.x),
-    y: originPx.y + hy + (pointPx.y - originPx.y),
+    x: globalPx.x + hx + (pointPx.x - originPx.x),
+    y: globalPx.y + hy + (pointPx.y - originPx.y),
   };
 }
 
