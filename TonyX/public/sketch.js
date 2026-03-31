@@ -43,7 +43,7 @@ let mappa_options = {
 
 function preload() {
   if (HERO_KEY === "schwarzenegger") {
-    heroImg = loadImage("assets/Schwarzenegger.png");
+    heroImg = loadImage("assets/schwarzenegger.png");
   } else {
     heroImg = loadImage("assets/JingWu01.png");
   }
@@ -170,8 +170,7 @@ function onMapChange() {
 }
 
 function gpsToScreen(traceData, lat, lon) {
-  if (!mapInit || !myMap || !myMap.map || !traceData.originLat)
-    return null;
+  if (!mapInit || !myMap || !myMap.map || !traceData.originLat) return null;
 
   let scale = Math.pow(2, myMap.map.getZoom() - zoom);
   let hx = traceData.headOffsetX * scale;
@@ -216,7 +215,7 @@ socket.on("connected", function (data) {
   // 加载所有历史 traces（包括自己这条新的）
   for (let id in data.traces) {
     let td = data.traces[id];
-     if (td.heroKey !== HERO_KEY) continue; 
+    if (td.heroKey !== HERO_KEY) continue;
     traces[id] = {
       headOffsetX: td.headOffsetX,
       headOffsetY: td.headOffsetY,
