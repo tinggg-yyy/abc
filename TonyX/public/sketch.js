@@ -52,22 +52,22 @@ function setup() {
   textAlign(CENTER, CENTER);
   textSize(11);
 
-homeBtn = createButton("🌍");
-homeBtn.position(width - 48, 12);
-homeBtn.size(36, 36);
+  homeBtn = createButton("🌍");
+  homeBtn.position(width - 48, 12);
+  homeBtn.size(36, 36);
 
-homeBtn.style("position", "fixed");
-homeBtn.style("z-index", "9999");
-homeBtn.style("pointer-events", "auto");
-homeBtn.style("cursor", "pointer");
+  homeBtn.style("position", "fixed");
+  homeBtn.style("z-index", "9999");
+  homeBtn.style("pointer-events", "auto");
+  homeBtn.style("cursor", "pointer");
 
-homeBtn.style("font-size", "20px");
-homeBtn.style("background", "transparent");
-homeBtn.style("border", "none");
-homeBtn.style("outline", "none");
-homeBtn.style("padding", "0");
+  homeBtn.style("font-size", "20px");
+  homeBtn.style("background", "transparent");
+  homeBtn.style("border", "none");
+  homeBtn.style("outline", "none");
+  homeBtn.style("padding", "0");
 
-homeBtn.mousePressed(calibration);
+  homeBtn.mousePressed(calibration);
 }
 
 function draw() {
