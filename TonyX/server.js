@@ -1,5 +1,3 @@
-// GPS HAIR PROJECT — server.js
-
 const express = require("express");
 const https = require("https");
 const fs = require("fs");
@@ -15,119 +13,122 @@ const HTTPSserver = https.createServer(options, app);
 const { Server } = require("socket.io");
 const io = new Server(HTTPSserver);
 
-const PORT = 4280;
-const COLOR = "#000000";
+const PORT = 4240;
+const size = 300;
 
-// Scalp ellipse parameters — must match sketch.js
-const HEAD_CX = 0.2;
-const HEAD_CY = -0.38;
-const ELLIPSE_RX = 0.17;
-const ELLIPSE_RY = 0.11;
-const TILT = 0.5;
-const INIT_SIZE = 300;
-const imgBuf = fs.readFileSync("public/assets/JingWu01.png");
-const IMG_ASPECT = imgBuf.readUInt32BE(20) / imgBuf.readUInt32BE(16);
+const heroConfigs = {
+  jingwu: {
+    imgFile: "public/assets/JingWu01.png",
+    headCx: 0.2,
+    headCy: -0.38,
+    ellipse_rx: 0.17,
+    ellipse_ry: 0.11,
+    tilt: 0.5,
+  },
+schwarzenegger: {
+  imgFile: "public/assets/Schwarzenegger.png",
+  headCx: -0.1,
+  headCy: -0.24,
+  ellipse_rx: 0.01,
+  ellipse_ry: 0.01,
+  tilt: 0.0,
+},
+};
 
-// Place the hair root at a random point within the scalp ellipse
-function randomHeadOffset() {
+const heroMeta = {};
+for (const [key, h] of Object.entries(heroConfigs)) {
+  const buf = fs.readFileSync(h.imgFile);
+  const imgAsp = buf.readUInt32BE(20) / buf.readUInt32BE(16);
+  heroMeta[key] = { ...h, imgAsp };
+}
+
+function randomHeadOffset(heroKey) {
+  const h = heroMeta[heroKey] || heroMeta.jingwu;
+  const { headCx, headCy, ellipse_rx, ellipse_ry, tilt, imgAsp } = h;
   let angle = Math.random() * Math.PI * 2;
   let r = Math.sqrt(Math.random());
-  let ex = ELLIPSE_RX * r * Math.cos(angle);
-  let ey = ELLIPSE_RY * r * Math.sin(angle);
-  // Rotate in pixel space where Y is scaled by aspect ratio
-  let pxX = ex * INIT_SIZE;
-  let pxY = ey * INIT_SIZE * IMG_ASPECT;
-  let rx = pxX * Math.cos(TILT) - pxY * Math.sin(TILT);
-  let ry = pxX * Math.sin(TILT) + pxY * Math.cos(TILT);
+  let ex = ellipse_rx * r * Math.cos(angle);
+  let ey = ellipse_ry * r * Math.sin(angle);
+  let pxX = ex * size;
+  let pxY = ey * size * imgAsp;
+  let rx = pxX * Math.cos(tilt) - pxY * Math.sin(tilt);
+  let ry = pxX * Math.sin(tilt) + pxY * Math.cos(tilt);
   return {
-    headOffsetX: HEAD_CX * INIT_SIZE + rx,
-    headOffsetY: HEAD_CY * INIT_SIZE * IMG_ASPECT + ry,
+    headOffsetX: headCx * size + rx,
+    headOffsetY: headCy * size * imgAsp + ry,
   };
 }
 
 let players = {};
-let persistedTraces = {};
-let globalOriginLat = null;
-let globalOriginLon = null;
+let traces = {};
 
-// -------------------------------------------------------------
-//  SOCKET EVENTS
-// -------------------------------------------------------------
 io.on("connection", (socket) => {
   console.log("connected", socket.id);
 
-  let offset = randomHeadOffset();
-  let traceID = socket.id;
+  socket.on("selectHero", function (data) {
+    const heroKey =
+      data.hero === "schwarzenegger" ? "schwarzenegger" : "jingwu";
+    let offset = randomHeadOffset(heroKey);
+    let traceID = socket.id;
 
-  persistedTraces[traceID] = {
-    headOffsetX: offset.headOffsetX,
-    headOffsetY: offset.headOffsetY,
-    color: COLOR,
-    originLat: null,
-    originLon: null,
-    points: [],
-  };
+    traces[traceID] = {
+      headOffsetX: offset.headOffsetX,
+      headOffsetY: offset.headOffsetY,
+      color: "#000000",
+      heroKey,
+      originLat: null,
+      originLon: null,
+      points: [],
+    };
 
-  players[socket.id] = {
-    traceID,
-    headOffsetX: offset.headOffsetX,
-    headOffsetY: offset.headOffsetY,
-    color: COLOR,
-    currentLat: 0,
-    currentLon: 0,
-  };
+    players[socket.id] = {
+      traceID,
+      heroKey,
+      headOffsetX: offset.headOffsetX,
+      headOffsetY: offset.headOffsetY,
+      color: "#000000",
+      currentLat: 0,
+      currentLon: 0,
+    };
 
-  socket.emit("welcome", {
-    socketID: socket.id,
-    traceID,
-    headOffsetX: offset.headOffsetX,
-    headOffsetY: offset.headOffsetY,
-    color: COLOR,
+    socket.emit("connected", {
+      socketID: socket.id,
+      traceID,
+      heroKey,
+      headOffsetX: offset.headOffsetX,
+      headOffsetY: offset.headOffsetY,
+      color: "#000000",
+      traces: traces,
+      onlinePlayers: Object.fromEntries(
+        Object.entries(players).map(([sid, p]) => [
+          sid,
+          {
+            traceID: p.traceID,
+            heroKey: p.heroKey,
+            color: p.color,
+            currentLat: p.currentLat,
+            currentLon: p.currentLon,
+          },
+        ])
+      ),
+    });
+
+    socket.broadcast.emit("newPlayer", {
+      socketID: socket.id,
+      traceID,
+      heroKey,
+      headOffsetX: offset.headOffsetX,
+      headOffsetY: offset.headOffsetY,
+      color: "#000000",
+    });
   });
 
-  // Send full trace history + current online players to the newcomer
-  socket.emit("initData", {
-    traces: persistedTraces,
-    myTraceID: traceID,
-    globalOriginLat,
-    globalOriginLon,
-    onlinePlayers: Object.fromEntries(
-      Object.entries(players).map(([sid, p]) => [
-        sid,
-        {
-          traceID: p.traceID,
-          headOffsetX: p.headOffsetX,
-          headOffsetY: p.headOffsetY,
-          color: p.color,
-          currentLat: p.currentLat,
-          currentLon: p.currentLon,
-        },
-      ]),
-    ),
-  });
-
-  // Notify existing clients of the new player
-  socket.broadcast.emit("playerJoined", {
-    socketID: socket.id,
-    traceID,
-    headOffsetX: offset.headOffsetX,
-    headOffsetY: offset.headOffsetY,
-    color: COLOR,
-  });
-
-  // First GPS fix — register the trace origin
   socket.on("registerOrigin", function (data) {
-    persistedTraces[traceID].originLat = data.originLat;
-    persistedTraces[traceID].originLon = data.originLon;
-    players[socket.id].originLat = data.originLat;
-    players[socket.id].originLon = data.originLon;
-
-    // First user to register sets the global head position for everyone
-    if (globalOriginLat === null) {
-      globalOriginLat = data.originLat;
-      globalOriginLon = data.originLon;
-      io.emit("globalOrigin", { lat: globalOriginLat, lon: globalOriginLon });
-    }
+    let p = players[socket.id];
+    if (!p) return;
+    let traceID = p.traceID;
+    traces[traceID].originLat = data.originLat;
+    traces[traceID].originLon = data.originLon;
 
     socket.broadcast.emit("traceOrigin", {
       traceID,
@@ -136,14 +137,14 @@ io.on("connection", (socket) => {
     });
   });
 
-  // Continuous location updates
   socket.on("locationFromClient", function (data) {
     let p = players[socket.id];
     if (!p) return;
     p.currentLat = data.lat;
     p.currentLon = data.lon;
 
-    persistedTraces[traceID].points.push({ lat: data.lat, lon: data.lon });
+    let traceID = p.traceID;
+    traces[traceID].points.push({ lat: data.lat, lon: data.lon });
 
     socket.broadcast.emit("locationFromServer", {
       socketID: socket.id,
@@ -153,10 +154,9 @@ io.on("connection", (socket) => {
     });
   });
 
-  // Remove live session; keep trace history
   socket.on("disconnect", function () {
     console.log("disconnected", socket.id);
-    socket.broadcast.emit("deletePerson", { socketID: socket.id });
+    socket.broadcast.emit("deletePlayer", { socketID: socket.id });
     delete players[socket.id];
   });
 });
