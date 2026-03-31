@@ -25,14 +25,14 @@ const heroConfigs = {
     ellipse_ry: 0.11,
     tilt: 0.5,
   },
-schwarzenegger: {
-  imgFile: "public/assets/Schwarzenegger.png",
-  headCx: -0.1,
-  headCy: -0.24,
-  ellipse_rx: 0.01,
-  ellipse_ry: 0.01,
-  tilt: 0.0,
-},
+  schwarzenegger: {
+    imgFile: "public/assets/schwarzenegger.png",
+    headCx: -0.1,
+    headCy: -0.24,
+    ellipse_rx: 0.01,
+    ellipse_ry: 0.01,
+    tilt: 0.0,
+  },
 };
 
 const heroMeta = {};
@@ -109,7 +109,7 @@ io.on("connection", (socket) => {
             currentLat: p.currentLat,
             currentLon: p.currentLon,
           },
-        ])
+        ]),
       ),
     });
 
