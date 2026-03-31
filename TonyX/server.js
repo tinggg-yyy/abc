@@ -13,7 +13,7 @@ const HTTPSserver = https.createServer(options, app);
 const { Server } = require("socket.io");
 const io = new Server(HTTPSserver);
 
-const PORT = 4240;
+const PORT = 4280;
 const size = 300;
 
 const heroConfigs = {
