@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <link rel="manifest" href="manifest.json" />
+    <title>TonyX – Schwarzenegger</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <script src="lib/p5.js"></script>
+    <script src="lib/mappa.js"></script>
+    <script src="socket.io/socket.io.js"></script>
+  </head>
+  <body>
+<button id="requestOrientationButton" style="position: fixed; top: 20px; left: 20px; z-index: 9999">
+  request GPS &amp; Orientation
+</button>
+    <div class="main-wrapper">
+      <div id="p5-canvas-container"></div>
+    </div>
+    <script src="requestGPS.js"></script>
+    <script>const HERO_KEY = "schwarzenegger";</script>
+    <script src="sketch.js"></script>
+  </body>
+</html>

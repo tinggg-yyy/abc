@@ -21,10 +21,9 @@ let mySocketID = null;
 
 let onlinePlayers = {};
 
-let socket;
-
 let homeBtn;
 
+let socket;
 if (
   location.hostname.toLowerCase().startsWith("browsercircus") ||
   location.hostname.toLowerCase().startsWith("www")
@@ -43,7 +42,11 @@ let mappa_options = {
 };
 
 function preload() {
-  heroImg = loadImage("assets/JingWu01.png");
+  if (HERO_KEY === "schwarzenegger") {
+    heroImg = loadImage("assets/schwarzenegger.png");
+  } else {
+    heroImg = loadImage("assets/JingWu01.png");
+  }
 }
 
 function setup() {
@@ -52,22 +55,30 @@ function setup() {
   textAlign(CENTER, CENTER);
   textSize(11);
 
+  let gpsBtn = select("#requestOrientationButton");
+  if (gpsBtn) {
+    gpsBtn.mousePressed(() => {
+      requestGPS();
+      requestOrientation();
+      gpsBtn.hide();
+    });
+  }
+
   homeBtn = createButton("🌍");
   homeBtn.position(width - 48, 12);
   homeBtn.size(36, 36);
-
   homeBtn.style("position", "fixed");
   homeBtn.style("z-index", "9999");
   homeBtn.style("pointer-events", "auto");
   homeBtn.style("cursor", "pointer");
-
   homeBtn.style("font-size", "20px");
   homeBtn.style("background", "transparent");
   homeBtn.style("border", "none");
   homeBtn.style("outline", "none");
   homeBtn.style("padding", "0");
-
   homeBtn.mousePressed(calibration);
+
+  socket.emit("selectHero", { hero: HERO_KEY });
 }
 
 function draw() {
@@ -80,14 +91,13 @@ function draw() {
     myMap.overlay(canvas);
     myMap.onChange(onMapChange);
     mapInit = true;
-
     onMapChange();
   }
 
   noStroke();
 
   if (mapInit) {
-    if (heroData) heroData.display(); // 只在这里 display，recalculate 已由 onMapChange 做过
+    if (heroData) heroData.display();
     for (let id in traces) playerTrace(traces[id]);
     for (let sid in onlinePlayers) {
       if (onlinePlayers[sid].dot) onlinePlayers[sid].dot.display();
@@ -152,7 +162,6 @@ function handleNewPosition(pos) {
 
 function onMapChange() {
   if (!myMap || !myMap.map) return;
-  // 只重算坐标，不 display
   if (heroData) heroData.recalculate();
   for (let id in traces) recalcTrace(traces[id]);
   for (let sid in onlinePlayers) {
@@ -161,26 +170,39 @@ function onMapChange() {
 }
 
 function gpsToScreen(traceData, lat, lon) {
-  if (
-    !mapInit ||
-    !myMap ||
-    !myMap.map ||
-    !traceData.originLat ||
-    myOriginLat === null
-  )
-    return null;
+  if (!mapInit || !myMap || !myMap.map || !traceData.originLat) return null;
 
   let scale = Math.pow(2, myMap.map.getZoom() - zoom);
-  let hx = traceData.headOffsetX * scale;
-  let hy = traceData.headOffsetY * scale;
-  let originPx = myMap.latLngToPixel(traceData.originLat, traceData.originLon);
   let pointPx = myMap.latLngToPixel(lat, lon);
-  let myOriginPx = myMap.latLngToPixel(myOriginLat, myOriginLon);
+  let theirOriginPx = myMap.latLngToPixel(
+    traceData.originLat,
+    traceData.originLon,
+  );
+  // their movement since their origin
+  let dx = pointPx.x - theirOriginPx.x;
+  let dy = pointPx.y - theirOriginPx.y;
 
-  return {
-    x: myOriginPx.x + hx + (pointPx.x - originPx.x),
-    y: myOriginPx.y + hy + (pointPx.y - originPx.y),
-  };
+  let myTd = myTraceID ? traces[myTraceID] : null;
+  if (myTd && myTd.originLat) {
+    let myOriginPx = myMap.latLngToPixel(myTd.originLat, myTd.originLon);
+    // myOriginPx - myHeadOffset = my image center
+    // + their headOffset = their slot on my image
+    // + dx,dy = their movement
+    return {
+      x:
+        myOriginPx.x -
+        myTd.headOffsetX * scale +
+        traceData.headOffsetX * scale +
+        dx,
+      y:
+        myOriginPx.y -
+        myTd.headOffsetY * scale +
+        traceData.headOffsetY * scale +
+        dy,
+    };
+  }
+
+  return { x: pointPx.x, y: pointPx.y };
 }
 
 function addPointToTrace(traceData, lat, lon) {
@@ -205,28 +227,16 @@ function recalcTrace(traceData) {
     .filter(Boolean);
 }
 
+// ── Socket events ──────────────────────────────────────────────
+
 socket.on("connected", function (data) {
   mySocketID = data.socketID;
   myTraceID = data.traceID;
 
-  traces[myTraceID] = {
-    headOffsetX: data.headOffsetX,
-    headOffsetY: data.headOffsetY,
-    color: data.color,
-    originLat: null,
-    originLon: null,
-    points: [],
-    pxPoints: [],
-  };
-
-  onlinePlayers[mySocketID] = {
-    traceID: myTraceID,
-    dot: new playerDot(data.color, myTraceID, true),
-  };
-
+  // 加载所有历史 traces（包括自己这条新的）
   for (let id in data.traces) {
-    if (id === myTraceID) continue;
     let td = data.traces[id];
+    if (td.heroKey !== HERO_KEY) continue;
     traces[id] = {
       headOffsetX: td.headOffsetX,
       headOffsetY: td.headOffsetY,
@@ -238,9 +248,15 @@ socket.on("connected", function (data) {
     };
   }
 
+  onlinePlayers[mySocketID] = {
+    traceID: myTraceID,
+    dot: new playerDot(data.color, myTraceID, true),
+  };
+
   for (let sid in data.onlinePlayers) {
     if (sid === mySocketID) continue;
     let op = data.onlinePlayers[sid];
+    if (op.heroKey !== HERO_KEY) continue;
     onlinePlayers[sid] = {
       traceID: op.traceID,
       dot: new playerDot(op.color, op.traceID, false),
@@ -254,6 +270,7 @@ socket.on("connected", function (data) {
 });
 
 socket.on("newPlayer", function (data) {
+  if (data.heroKey !== HERO_KEY) return;
   if (!traces[data.traceID]) {
     traces[data.traceID] = {
       headOffsetX: data.headOffsetX,
@@ -333,10 +350,18 @@ class ImageData {
 
   recalculate() {
     if (!mapInit || !myMap || !myMap.map) return;
-    let pos = myMap.latLngToPixel(this.lat, this.lon);
     let scale = Math.pow(2, myMap.map.getZoom() - zoom);
-    this.x = pos.x;
-    this.y = pos.y;
+    let pos = myMap.latLngToPixel(this.lat, this.lon);
+    let hx = 0,
+      hy = 0;
+    if (myTraceID && traces[myTraceID]) {
+      hx = traces[myTraceID].headOffsetX * scale;
+      hy = traces[myTraceID].headOffsetY * scale;
+    }
+    // image center = arrow position - headOffset
+    // so that image head (center + headOffset) aligns with arrow
+    this.x = pos.x - hx;
+    this.y = pos.y - hy;
     this.w = size * scale;
     this.h = size * (this.img.height / this.img.width) * scale;
   }
@@ -364,12 +389,19 @@ class playerDot {
 
   recalculate() {
     if (!mapInit || this.currentLat === 0) return;
-    let td = traces[this.traceID];
-    if (!td || td.originLat === undefined) return;
-    let px = gpsToScreen(td, this.currentLat, this.currentLon);
-    if (px) {
-      this.goalX = px.x;
-      this.goalY = px.y;
+    if (this.isMe) {
+      // arrow always at raw GPS pixel, no offset
+      let pos = myMap.latLngToPixel(this.currentLat, this.currentLon);
+      this.goalX = pos.x;
+      this.goalY = pos.y;
+    } else {
+      let td = traces[this.traceID];
+      if (!td || td.originLat === undefined) return;
+      let px = gpsToScreen(td, this.currentLat, this.currentLon);
+      if (px) {
+        this.goalX = px.x;
+        this.goalY = px.y;
+      }
     }
   }
 
