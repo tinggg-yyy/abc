@@ -16,6 +16,7 @@ const io = new Server(HTTPSserver);
 const PORT = 4280;
 const size = 300;
 
+// Hero Images with ellipse configuration for random head offset generation
 const heroConfigs = {
   jingwu: {
     imgFile: "public/assets/JingWu01.png",
@@ -35,6 +36,7 @@ const heroConfigs = {
   },
 };
 
+// Hero image aspect ratio for correct head offset calculation
 const heroMeta = {};
 for (const [key, h] of Object.entries(heroConfigs)) {
   const buf = fs.readFileSync(h.imgFile);
@@ -42,6 +44,7 @@ for (const [key, h] of Object.entries(heroConfigs)) {
   heroMeta[key] = { ...h, imgAsp };
 }
 
+// Generate random head offset within the defined ellipse for a given hero
 function randomHeadOffset(heroKey) {
   const h = heroMeta[heroKey] || heroMeta.jingwu;
   const { headCx, headCy, ellipse_rx, ellipse_ry, tilt, imgAsp } = h;
@@ -65,6 +68,7 @@ let traces = {};
 io.on("connection", (socket) => {
   console.log("connected", socket.id);
 
+  // When a player selects a hero, initialize their trace and broadcast their presence to others
   socket.on("selectHero", function (data) {
     const heroKey =
       data.hero === "schwarzenegger" ? "schwarzenegger" : "jingwu";
@@ -91,6 +95,7 @@ io.on("connection", (socket) => {
       currentLon: 0,
     };
 
+    // Send the new player their own info along with the current state of all players and traces
     socket.emit("connected", {
       socketID: socket.id,
       traceID,
@@ -113,6 +118,7 @@ io.on("connection", (socket) => {
       ),
     });
 
+    // Broadcast the new player's info to all other connected clients
     socket.broadcast.emit("newPlayer", {
       socketID: socket.id,
       traceID,
@@ -123,6 +129,7 @@ io.on("connection", (socket) => {
     });
   });
 
+  // When a player registers their origin location, update the trace and broadcast it to others
   socket.on("registerOrigin", function (data) {
     let p = players[socket.id];
     if (!p) return;
@@ -130,6 +137,7 @@ io.on("connection", (socket) => {
     traces[traceID].originLat = data.originLat;
     traces[traceID].originLon = data.originLon;
 
+    // Broadcast the new trace origin to all other connected clients
     socket.broadcast.emit("traceOrigin", {
       traceID,
       originLat: data.originLat,
@@ -137,6 +145,7 @@ io.on("connection", (socket) => {
     });
   });
 
+  // When a player sends their location, update their trace and broadcast it to others
   socket.on("locationFromClient", function (data) {
     let p = players[socket.id];
     if (!p) return;
@@ -146,6 +155,7 @@ io.on("connection", (socket) => {
     let traceID = p.traceID;
     traces[traceID].points.push({ lat: data.lat, lon: data.lon });
 
+    // Broadcast new location to all other connected clients
     socket.broadcast.emit("locationFromServer", {
       socketID: socket.id,
       traceID,
@@ -154,6 +164,7 @@ io.on("connection", (socket) => {
     });
   });
 
+  // When a player disconnects, remove them from the players list and broadcast their departure to others
   socket.on("disconnect", function () {
     console.log("disconnected", socket.id);
     socket.broadcast.emit("deletePlayer", { socketID: socket.id });

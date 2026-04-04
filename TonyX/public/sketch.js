@@ -55,6 +55,7 @@ function setup() {
   textAlign(CENTER, CENTER);
   textSize(11);
 
+  // Request GPS and orientation permissions
   let gpsBtn = select("#requestOrientationButton");
   if (gpsBtn) {
     gpsBtn.mousePressed(() => {
@@ -64,6 +65,7 @@ function setup() {
     });
   }
 
+  // Home button to reset map view to my origin
   homeBtn = createButton("🌍");
   homeBtn.position(width - 48, 12);
   homeBtn.size(36, 36);
@@ -78,12 +80,14 @@ function setup() {
   homeBtn.style("padding", "0");
   homeBtn.mousePressed(calibration);
 
+  // Register hero selection with the server
   socket.emit("selectHero", { hero: HERO_KEY });
 }
 
 function draw() {
   clear();
 
+  // Initialize the map once we have GPS permission and a valid location
   if (!mapInit && GPS_GRANTED && currentLon !== 0) {
     mappa_options.lat = currentLat;
     mappa_options.lng = currentLon;
@@ -96,6 +100,7 @@ function draw() {
 
   noStroke();
 
+  // Draw traces and player dots
   if (mapInit) {
     if (heroData) heroData.display();
     for (let id in traces) playerTrace(traces[id]);
@@ -103,10 +108,10 @@ function draw() {
       if (onlinePlayers[sid].dot) onlinePlayers[sid].dot.display();
     }
   }
-
   drawLabels();
 }
 
+// Re-center the map on my origin location
 function calibration() {
   if (!mapInit || !myMap || !myMap.map) return;
   if (myOriginLat === null || myOriginLon === null) return;
@@ -118,6 +123,7 @@ function windowResized() {
   if (mapInit) onMapChange();
 }
 
+// Handle new GPS position updates
 function handleNewPosition(pos) {
   let lonlat = fixForChineseMap(pos);
   currentLon = lonlat[0];
@@ -129,11 +135,13 @@ function handleNewPosition(pos) {
     myOriginLon = currentLon;
     heroData = new ImageData(myOriginLat, myOriginLon, heroImg);
 
+    // Register my trace origin with the server
     socket.emit("registerOrigin", {
       originLat: myOriginLat,
       originLon: myOriginLon,
     });
 
+    // Update my trace origin locally
     if (myTraceID && traces[myTraceID]) {
       traces[myTraceID].originLat = myOriginLat;
       traces[myTraceID].originLon = myOriginLon;
@@ -141,10 +149,12 @@ function handleNewPosition(pos) {
     }
   }
 
+  // Add the new position to my trace
   if (myTraceID && traces[myTraceID]) {
     addPointToTrace(traces[myTraceID], currentLat, currentLon);
   }
 
+  // Update player dot position for myself
   if (
     mySocketID &&
     onlinePlayers[mySocketID] &&
@@ -156,10 +166,12 @@ function handleNewPosition(pos) {
     if (mapInit) dot.recalculate();
   }
 
+  // Send my new location to the server
   socket.emit("locationFromClient", { lat: currentLat, lon: currentLon });
   if (mapInit) onMapChange();
 }
 
+// Recalculate Image & Traces when map view changes (e.g. zoom, pan)
 function onMapChange() {
   if (!myMap || !myMap.map) return;
   if (heroData) heroData.recalculate();
@@ -169,19 +181,19 @@ function onMapChange() {
   }
 }
 
+// Convert GPS lat/lon to screen pixel coordinates
 function gpsToScreen(traceData, lat, lon) {
   if (!mapInit || !myMap || !myMap.map || !traceData.originLat) return null;
 
+  // Calculate all traces based on their origin relative to my origin point & HeadOffset
   let scale = Math.pow(2, myMap.map.getZoom() - zoom);
   let pointPx = myMap.latLngToPixel(lat, lon);
   let theirOriginPx = myMap.latLngToPixel(
     traceData.originLat,
     traceData.originLon,
   );
-  // their movement since their origin
   let dx = pointPx.x - theirOriginPx.x;
   let dy = pointPx.y - theirOriginPx.y;
-
   let myTd = myTraceID ? traces[myTraceID] : null;
   if (myTd && myTd.originLat) {
     let myOriginPx = myMap.latLngToPixel(myTd.originLat, myTd.originLon);
@@ -205,6 +217,7 @@ function gpsToScreen(traceData, lat, lon) {
   return { x: pointPx.x, y: pointPx.y };
 }
 
+// Create trace points
 function addPointToTrace(traceData, lat, lon) {
   let last = traceData.points[traceData.points.length - 1];
   if (
@@ -220,6 +233,7 @@ function addPointToTrace(traceData, lat, lon) {
   }
 }
 
+// recalculate all screen pixel points for a trace (e.g. when map zoom/pan changes)
 function recalcTrace(traceData) {
   if (!mapInit || !traceData.originLat) return;
   traceData.pxPoints = traceData.points
@@ -227,91 +241,7 @@ function recalcTrace(traceData) {
     .filter(Boolean);
 }
 
-// ── Socket events ──────────────────────────────────────────────
-
-socket.on("connected", function (data) {
-  mySocketID = data.socketID;
-  myTraceID = data.traceID;
-
-  // 加载所有历史 traces（包括自己这条新的）
-  for (let id in data.traces) {
-    let td = data.traces[id];
-    if (td.heroKey !== HERO_KEY) continue;
-    traces[id] = {
-      headOffsetX: td.headOffsetX,
-      headOffsetY: td.headOffsetY,
-      color: td.color,
-      originLat: td.originLat || null,
-      originLon: td.originLon || null,
-      points: td.points || [],
-      pxPoints: [],
-    };
-  }
-
-  onlinePlayers[mySocketID] = {
-    traceID: myTraceID,
-    dot: new playerDot(data.color, myTraceID, true),
-  };
-
-  for (let sid in data.onlinePlayers) {
-    if (sid === mySocketID) continue;
-    let op = data.onlinePlayers[sid];
-    if (op.heroKey !== HERO_KEY) continue;
-    onlinePlayers[sid] = {
-      traceID: op.traceID,
-      dot: new playerDot(op.color, op.traceID, false),
-    };
-    onlinePlayers[sid].dot.currentLat = op.currentLat;
-    onlinePlayers[sid].dot.currentLon = op.currentLon;
-    if (mapInit) onlinePlayers[sid].dot.recalculate();
-  }
-
-  if (mapInit) onMapChange();
-});
-
-socket.on("newPlayer", function (data) {
-  if (data.heroKey !== HERO_KEY) return;
-  if (!traces[data.traceID]) {
-    traces[data.traceID] = {
-      headOffsetX: data.headOffsetX,
-      headOffsetY: data.headOffsetY,
-      color: data.color,
-      originLat: null,
-      originLon: null,
-      points: [],
-      pxPoints: [],
-    };
-  }
-  onlinePlayers[data.socketID] = {
-    traceID: data.traceID,
-    dot: new playerDot(data.color, data.traceID, false),
-  };
-});
-
-socket.on("traceOrigin", function (data) {
-  if (!traces[data.traceID]) return;
-  traces[data.traceID].originLat = data.originLat;
-  traces[data.traceID].originLon = data.originLon;
-  if (mapInit) recalcTrace(traces[data.traceID]);
-});
-
-socket.on("locationFromServer", function (data) {
-  let td = traces[data.traceID];
-  if (!td) return;
-  addPointToTrace(td, data.lat, data.lon);
-
-  let op = onlinePlayers[data.socketID];
-  if (op && op.dot) {
-    op.dot.currentLat = data.lat;
-    op.dot.currentLon = data.lon;
-    if (mapInit) op.dot.recalculate();
-  }
-});
-
-socket.on("deletePlayer", function (data) {
-  delete onlinePlayers[data.socketID];
-});
-
+// Draw Traces
 function playerTrace(td) {
   if (td.pxPoints.length === 0) return;
   push();
@@ -337,6 +267,7 @@ function playerTrace(td) {
   pop();
 }
 
+// Image Data for Hero Images
 class ImageData {
   constructor(lat, lon, img) {
     this.lat = lat;
@@ -348,6 +279,7 @@ class ImageData {
     this.h = size * (img.height / img.width);
   }
 
+  // Recalculate image position and size based on map zoom and trace head offset
   recalculate() {
     if (!mapInit || !myMap || !myMap.map) return;
     let scale = Math.pow(2, myMap.map.getZoom() - zoom);
@@ -374,6 +306,7 @@ class ImageData {
   }
 }
 
+// Traces
 class playerDot {
   constructor(col, traceID, isMe) {
     this.col = col;
@@ -433,6 +366,7 @@ class playerDot {
   }
 }
 
+// Draw labels showing number of traces and online players
 function drawLabels() {
   if (!mapInit) return;
   let labels = [
@@ -457,3 +391,90 @@ function drawLabels() {
   }
   pop();
 }
+
+// Socket Events
+
+// When first connected, receive my socket ID, trace ID, and all existing traces & online players
+socket.on("connected", function (data) {
+  mySocketID = data.socketID;
+  myTraceID = data.traceID;
+  for (let id in data.traces) {
+    let td = data.traces[id];
+    if (td.heroKey !== HERO_KEY) continue;
+    traces[id] = {
+      headOffsetX: td.headOffsetX,
+      headOffsetY: td.headOffsetY,
+      color: td.color,
+      originLat: td.originLat || null,
+      originLon: td.originLon || null,
+      points: td.points || [],
+      pxPoints: [],
+    };
+  }
+  onlinePlayers[mySocketID] = {
+    traceID: myTraceID,
+    dot: new playerDot(data.color, myTraceID, true),
+  };
+
+  // Set initial position
+  for (let sid in data.onlinePlayers) {
+    if (sid === mySocketID) continue;
+    let op = data.onlinePlayers[sid];
+    if (op.heroKey !== HERO_KEY) continue;
+    onlinePlayers[sid] = {
+      traceID: op.traceID,
+      dot: new playerDot(op.color, op.traceID, false),
+    };
+    onlinePlayers[sid].dot.currentLat = op.currentLat;
+    onlinePlayers[sid].dot.currentLon = op.currentLon;
+    if (mapInit) onlinePlayers[sid].dot.recalculate();
+  }
+
+  if (mapInit) onMapChange();
+});
+
+// When a new player joins, add them to the online players list
+socket.on("newPlayer", function (data) {
+  if (data.heroKey !== HERO_KEY) return;
+  if (!traces[data.traceID]) {
+    traces[data.traceID] = {
+      headOffsetX: data.headOffsetX,
+      headOffsetY: data.headOffsetY,
+      color: data.color,
+      originLat: null,
+      originLon: null,
+      points: [],
+      pxPoints: [],
+    };
+  }
+  onlinePlayers[data.socketID] = {
+    traceID: data.traceID,
+    dot: new playerDot(data.color, data.traceID, false),
+  };
+});
+
+// Update others' trace origin
+socket.on("traceOrigin", function (data) {
+  if (!traces[data.traceID]) return;
+  traces[data.traceID].originLat = data.originLat;
+  traces[data.traceID].originLon = data.originLon;
+  if (mapInit) recalcTrace(traces[data.traceID]);
+});
+
+// Update others' location
+socket.on("locationFromServer", function (data) {
+  let td = traces[data.traceID];
+  if (!td) return;
+  addPointToTrace(td, data.lat, data.lon);
+
+  let op = onlinePlayers[data.socketID];
+  if (op && op.dot) {
+    op.dot.currentLat = data.lat;
+    op.dot.currentLon = data.lon;
+    if (mapInit) op.dot.recalculate();
+  }
+});
+// When a player disconnects, remove them from the online players list
+socket.on("deletePlayer", function (data) {
+  delete onlinePlayers[data.socketID];
+});
