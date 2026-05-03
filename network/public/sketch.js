@@ -100,10 +100,6 @@ socket.on("connect", function () {
 // Auto-request GPS on page load
 requestGPS();
 
-// ============================================================
-// Touch helpers
-// ============================================================
-
 // Return the userId of the user whose circle was hit at (tx, ty), or null.
 // Skips "me" when skipSelf is true.
 function findUserAtTouch(tx, ty, skipSelf) {
@@ -208,6 +204,7 @@ function touchEnded() {
   }
 }
 
+/* LOCATION MODE BUTTONS */
 // Change Location button
 document.getElementById("changeLocationButton").addEventListener("click", function () {
   changingLocation = true;
@@ -283,10 +280,6 @@ function getConversationMessages(userId1, userId2) {
     );
   });
 }
-
-// ============================================================
-// Socket event listeners
-// ============================================================
 
 // Server pushes all historical locations on first connect
 socket.on("historical-locations", function (historicalLocs) {
@@ -441,10 +434,7 @@ socket.on("message-travel", function (data) {
   }
 });
 
-// ============================================================
-// Map configuration
-// Initialized after first GPS fix so the map centers on the user
-// ============================================================
+/* MAP */
 let mappa_options = {
   lat: 0,
   lng: 0,
@@ -452,9 +442,6 @@ let mappa_options = {
   style: "https://webst01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=6&x={x}&y={y}&z={z}",
 };
 
-// ============================================================
-// p5.js lifecycle
-// ============================================================
 
 // Time-system utilities
 function getInAppDay() { return Math.floor((getOnlineTime() - firstUseTime) / MS_PER_DAY) + 1; }
@@ -548,7 +535,7 @@ function draw() {
       rect(0, 0, width, height);
     }
 
-    // --- Time system: detect day advancement and broken connections ---
+    /*Time system: detect day advancement and broken connections */
     currentInAppDay = getInAppDay();
     if (currentInAppDay > prevInAppDay) {
       prevInAppDay = currentInAppDay;
@@ -605,7 +592,7 @@ function draw() {
     const connSet = new Set();
     for (let conn of connections) connSet.add(conn.fromUserId + "-" + conn.toUserId);
 
-    // --- Draw lines between users who have chatted (one line per pair) ---
+    /* Draw Lines between users*/
     // Mutually selected → bright green; otherwise → dim green
     // Line thickness grows with message count: 1px base, up to 5px
     const chattedPairs = new Map(); // pairKey → message count
@@ -664,7 +651,7 @@ function draw() {
       delete loopingMessages["__history__"];
     }
 
-    /*History playback mode */
+    /* History playback mode */
     // Long-press on a user: loop their last 10 messages with us in sequence
     if (historyViewUserId) {
       let historyMsgs = getConversationMessages(myUserId, historyViewUserId).slice(-10);
@@ -708,7 +695,7 @@ function draw() {
       }
     }
 
-    // --- Flying message animation ---
+   /*LOOPING MESSAGE ANIMATION*/
     const LOOP_PAUSE = 500;   // pause (ms) at end of each loop cycle
     const SIDE_OFFSET = 10;   // pixel offset perpendicular to the line, to separate A→B from B→A
     for (let key in loopingMessages) {
@@ -834,7 +821,7 @@ function draw() {
       }
     }
 
-    /*Chat-web inspection view (triggered by double-tapping a connected user) */
+    /* Chat-web inspection view (double-tapping a connected user) */
     if (inspectedUserId) {
       let inspLoc = locMap[inspectedUserId];
       if (inspLoc) {
@@ -1357,6 +1344,7 @@ function kbShowCandidates() {
   if (candidates.length === 0) {
     row.style.display = "none";
     row.innerHTML = "";
+    updateSideButtonPositions();
     return;
   }
   row.style.display = "flex";
@@ -1372,6 +1360,7 @@ function kbShowCandidates() {
     });
     row.appendChild(btn);
   });
+  updateSideButtonPositions();
 }
 
 // Update the message preview above the keyboard.
