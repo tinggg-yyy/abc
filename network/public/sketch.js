@@ -84,8 +84,6 @@ let clientMessages = [];       // full message log
 let historyViewUserId = null;
 let historyStartTime = 0;
 
-let newUserComing = [];
-
 // blink: userId → blink-end timestamp (ms)
 let blinkingUsers = {};
 
@@ -220,8 +218,6 @@ document.getElementById("changeLocationButton").addEventListener("click", functi
 function exitLocationMode() {
   pendingLocation = null;
   changingLocation = false;
-  const btn = document.getElementById("changeLocationButton");
-  btn.style.display = "block";
   syncLocationButton();
   document.getElementById("confirmLocationGroup").style.display = "none";
   document.getElementById("locationHint").style.display = "none";
@@ -304,11 +300,6 @@ socket.on("historical-locations", function (historicalLocs) {
 socket.on("location-from-server", function (locationData) {
   updateOrAddLocation(locationData);
   syncLocationButton();
-});
-
-// New user joined: show animated "xxx joined" banner
-socket.on("new-user-joined", function (data) {
-  newUserComing.push({ username: data.username, startTime: Date.now() });
 });
 
 // Connection list: both historical snapshot and live updates use the same assignment
@@ -501,21 +492,25 @@ function getMsgColor(count, alpha) {
 
 // Draw n interleaved sine waves between two points, simulating a "rope" or chat-web effect
 function drawWindingLines(x1, y1, x2, y2, exchanges, lineColor) {
-  let n = min(exchanges, 8);
+  let n = min(exchanges, 7);
   let dx = x2 - x1, dy = y2 - y1;
   let len = Math.sqrt(dx * dx + dy * dy) || 1;
   let perpX = -dy / len, perpY = dx / len;
-  let amplitude = 7;
-  let freq = 3;
+  // Amplitude grows with message count so heavy conversations spread wide
+  let maxAmplitude = 6 + min(exchanges, 35) * 1.4;
   noFill();
-  if (lineColor) stroke(lineColor);
-  else stroke(57, 255, 20, 180);
   strokeWeight(1);
   for (let s = 0; s < n; s++) {
-    let phase = (s / n) * TWO_PI;
+    // Each line gets a different number of bumps so they look distinct
+    let freq = s + 1;
+    let layerAmp = maxAmplitude * ((s + 1) / n);
+    let alpha = lineColor ? null : map(s, 0, n - 1, 220, 100);
+    if (lineColor) stroke(lineColor);
+    else stroke(57, 255, 20, alpha);
     beginShape();
     for (let t = 0; t <= 1; t += 0.01) {
-      let offset = sin(t * TWO_PI * freq + phase) * amplitude;
+      let envelope = sin(t * PI);
+      let offset = sin(t * TWO_PI * freq) * layerAmp * envelope;
       vertex(lerp(x1, x2, t) + perpX * offset, lerp(y1, y2, t) + perpY * offset);
     }
     endShape();
@@ -913,27 +908,6 @@ function draw() {
       }
     }
 
-    // --- "X joined" announcement banners (fade out after 3 seconds) ---
-    const announceDuration = 3000;
-    let yOffset = 40;
-    // Iterate backwards so splice() doesn't shift unvisited indices
-    for (let i = newUserComing.length - 1; i >= 0; i--) {
-      let ann = newUserComing[i];
-      let elapsed = Date.now() - ann.startTime;
-      if (elapsed > announceDuration) {
-        newUserComing.splice(i, 1);
-        continue;
-      }
-      let alpha = constrain(map(elapsed, announceDuration * 0.6, announceDuration, 255, 0), 0, 255);
-      push();
-      noStroke();
-      fill(111, 92, 100, alpha);
-      textAlign(CENTER);
-      textSize(16);
-      text(ann.username + " joined", width / 2, yOffset);
-      pop();
-      yOffset += 24;
-    }
   }
 }
 
@@ -942,12 +916,16 @@ function windowResized() {
 }
 
 function syncLocationButton() {
+  if (changingLocation) return;
   const btn = document.getElementById("changeLocationButton");
-  if (btn.style.display === "none") return; // hidden while in change-location mode
   if (findLocByUserId(myUserId)) {
+    // Already has a location: hide the button — 📍 toggle controls it
     btn.textContent = "change location";
+    btn.style.display = "none";
   } else {
+    // No location yet: always show "add location"
     btn.textContent = "add location";
+    btn.style.display = "block";
   }
 }
 
@@ -956,7 +934,6 @@ function handleNewPosition(pos) {
   me.accuracy = pos.coords.accuracy;
 
   if (!changingLocation) {
-    document.getElementById("changeLocationButton").style.display = "block";
     syncLocationButton();
   }
 
@@ -1621,7 +1598,7 @@ function tutorialClose() {
   document.getElementById("tutorial-overlay").classList.add("hidden");
   const helpBtn = document.getElementById("tutorial-help-btn");
   helpBtn.style.display = "block";
-  helpBtn.style.bottom = (document.getElementById("fake-keyboard").offsetHeight + 12) + "px";
+  updateSideButtonPositions();
 }
 
 document.getElementById("tutorial-next-btn").addEventListener("click", function () {
@@ -1637,6 +1614,27 @@ document.getElementById("tutorial-help-btn").addEventListener("click", function 
 });
 
 preventTouchBubble("tutorial-overlay");
+
+// Map-pin (📍) button: reveals "change location" for users who already have a location
+document.getElementById("locationMenuBtn").addEventListener("click", function () {
+  if (changingLocation) return;
+  const btn = document.getElementById("changeLocationButton");
+  if (findLocByUserId(myUserId)) {
+    btn.textContent = "change location";
+    btn.style.display = btn.style.display === "none" ? "block" : "none";
+  }
+});
+preventTouchBubble("locationMenuBtn");
+
+// Keep both side buttons above the keyboard
+function updateSideButtonPositions() {
+  const kbHeight = document.getElementById("fake-keyboard").offsetHeight;
+  const bottom = (kbHeight + 12) + "px";
+  document.getElementById("locationMenuBtn").style.bottom = bottom;
+  const helpBtn = document.getElementById("tutorial-help-btn");
+  if (helpBtn) helpBtn.style.bottom = bottom;
+}
+window.addEventListener("load", updateSideButtonPositions);
 
 // Show tutorial on first load
 tutorialShow(0);
