@@ -69,7 +69,7 @@ body::after {
   align-items: center;
 }
 
-#name-label {
+#nameForm #name-label {
   display: block;
   margin: 0;
   font-size: 0.75em;
