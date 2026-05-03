@@ -14,13 +14,20 @@ let username = localStorage.getItem("user-nameTEST");
 // Both users independently compute the same day number, so broken-connection state is identical.
 const MS_PER_DAY = 2 * 60 * 1000;
 
+// Record the first time this user opens the app; never overwritten
+const firstUseTime = (() => {
+  let t = localStorage.getItem("network-first-use-time");
+  if (!t) { t = String(Date.now()); localStorage.setItem("network-first-use-time", t); }
+  return parseInt(t);
+})();
+
 function getOnlineTime() { return Date.now(); }
 
 // Per-pair wall-clock timestamps of last message (persisted, v4 = wall-clock based)
 let lastMsgTimes = JSON.parse(localStorage.getItem("network-last-msg-times-v4") || "{}");
 // Permanently broken pairs (persisted, v3)
 let brokenConnPairs = new Set(JSON.parse(localStorage.getItem("network-broken-conns-v3") || "[]"));
-let currentInAppDay = Math.floor(Date.now() / MS_PER_DAY);
+let currentInAppDay = Math.floor((Date.now() - firstUseTime) / MS_PER_DAY) + 1;
 let prevInAppDay = currentInAppDay;
 
 // Assign a stable userId per browser, persisted across reloads
@@ -461,7 +468,7 @@ let mappa_options = {
 // ============================================================
 
 // Time-system utilities
-function getInAppDay() { return Math.floor(getOnlineTime() / MS_PER_DAY); }
+function getInAppDay() { return Math.floor((getOnlineTime() - firstUseTime) / MS_PER_DAY) + 1; }
 function mkPKey(a, b) { return [a, b].sort().join("|"); }
 function markMsgTime(uid1, uid2, t) {
   lastMsgTimes[mkPKey(uid1, uid2)] = t !== undefined ? t : Date.now();
@@ -553,11 +560,12 @@ function draw() {
     if (currentInAppDay > prevInAppDay) {
       prevInAppDay = currentInAppDay;
     }
+    const absoluteDay = Math.floor(Date.now() / MS_PER_DAY);
     for (let k in lastMsgTimes) {
       if (brokenConnPairs.has(k)) continue;
       let parts = k.split("|");
       let lastDay = Math.floor(lastMsgTimes[k] / MS_PER_DAY);
-      if (currentInAppDay - lastDay >= 2) {
+      if (absoluteDay - lastDay >= 2) {
         doBreakLine(parts[0], parts[1]);
         // Auto-deselect if the broken pair involves the currently selected user
         if (selectedUserId === parts[0] || selectedUserId === parts[1]) {
