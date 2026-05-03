@@ -1578,10 +1578,10 @@ class MyPoint {
 
 /* Tutorial Pop Up Windows */
 const tutorialSlides = [
-  { gesture: "○",  title: "single tap",        desc: "tap on someone\nto connect with them" },
-  { gesture: "○○", title: "double tap",         desc: "double tap the map\nto drop your pin" },
-  { gesture: "○○", title: "double tap a person",desc: "double tap a contact\nto reveal their chat web" },
-  { gesture: "◉",  title: "long press",         desc: "long press on someone\nto view your message history" },
+  { gesture: "○",  title: "SINGLE TAP",        desc: "Tap on someone\nto connect with them" },
+  { gesture: "○○", title: "DOUBLE TAP",         desc: "Double tap the map\nto drop your pin" },
+  { gesture: "○○", title: "DOUBLE TAP SOMEONE",desc: "Double tap a contact\nto reveal their chat web" },
+  { gesture: "◉",  title: "LONG PRESS",         desc: "Long press on someone\nto view your message history" },
   { gesture: '<div class="tear-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36" class="tear-anim"><path d="M14 1 C22 12 24 20 24 24 A10 10 0 0 1 4 24 C4 20 6 12 14 1Z" fill="#39ff14"/></svg></div>', title: "", desc: "Reply to the one you care about\nbefore it's TOO LATE" },
 ];
 
