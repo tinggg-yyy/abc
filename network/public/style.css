@@ -1,0 +1,442 @@
+@font-face {
+  font-family: "Zpix";
+  src: url("assets/zpix.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  --green: #39ff14;
+  --green-dim: rgba(57, 255, 20, 0.4);
+  --green-faint: rgba(57, 255, 20, 0.15);
+  --bg: #000;
+  --bg-surface: #0d0d0d;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Zpix", monospace;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  touch-action: manipulation;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--green);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* scanlines overlay */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.25) 50%),
+    linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.015), rgba(0,0,255,0.03));
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+
+/* Confirm / cancel location buttons */
+#confirmLocationGroup {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  gap: 6px;
+  flex-direction: row;
+  align-items: center;
+}
+
+#confirmLocationButton,
+#cancelLocationButton {
+  background: var(--bg);
+  color: var(--green);
+  border: 2px solid var(--green);
+  font-family: "Zpix", monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px var(--green-dim);
+  box-shadow: 0 0 8px var(--green-faint);
+}
+
+#confirmLocationButton:active,
+#cancelLocationButton:active {
+  background: #003300;
+}
+
+#day-counter {
+  position: fixed;
+  top: 20px;
+  right: 14px;
+  z-index: 1100;
+  color: var(--green);
+  font-family: "Zpix", monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px var(--green-dim);
+  white-space: nowrap;
+}
+
+/* Change Location button */
+#changeLocationButton {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  background: var(--bg);
+  color: var(--green);
+  border: 2px solid var(--green);
+  font-family: "Zpix", monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px var(--green-dim);
+  box-shadow: 0 0 8px var(--green-faint);
+}
+
+
+#changeLocationButton:active {
+  background: #003300;
+}
+
+/* GPS button */
+#requestOrientationButton {
+  background: var(--bg);
+  color: var(--green);
+  border: 2px solid var(--green);
+  font-family: "Zpix", monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px var(--green-dim);
+  box-shadow: 0 0 8px var(--green-faint);
+}
+
+#requestOrientationButton:active {
+  background: #003300;
+}
+
+/* Location hint instruction */
+#locationHint {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  color: var(--green);
+  font-family: "Zpix", monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px var(--green-dim);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Fake keyboard */
+#fake-keyboard {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #050505;
+  border-top: 1px solid var(--green);
+  padding: 6px 4px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: 0 -4px 20px var(--green-faint);
+}
+
+#kb-display {
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--green-dim);
+  background: #000;
+  color: var(--green);
+  font-family: "Zpix", monospace;
+  font-size: 13px;
+  letter-spacing: 1px;
+  word-break: break-all;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.kb-cursor {
+  animation: kb-blink 1s step-end infinite;
+  color: var(--green);
+  line-height: 1;
+}
+
+@keyframes kb-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.kb-row {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.kb-key {
+  background: #0a0a0a;
+  border: 1px solid var(--green-dim);
+  color: var(--green);
+  font-family: "Zpix", monospace;
+  font-size: 12px;
+  height: 40px;
+  min-width: 30px;
+  flex: 1;
+  max-width: 40px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: background 0.05s, box-shadow 0.05s;
+}
+
+.kb-key:active {
+  background: #003300;
+  box-shadow: 0 0 8px var(--green-dim);
+  color: #fff;
+}
+
+.kb-shift,
+.kb-backspace {
+  max-width: 48px;
+  font-size: 14px;
+}
+
+.kb-shift.active {
+  background: #003300;
+  border-color: var(--green);
+  box-shadow: 0 0 8px var(--green-dim);
+}
+
+.kb-space {
+  max-width: 200px;
+  flex: 4;
+  font-size: 10px;
+  letter-spacing: 3px;
+}
+
+.kb-enter {
+  max-width: 90px;
+  flex: 2;
+  font-size: 10px;
+  letter-spacing: 1px;
+  border-color: var(--green);
+  text-shadow: 0 0 6px var(--green-dim);
+}
+
+.kb-lang {
+  max-width: 44px;
+  flex: 0 0 44px;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.kb-lang.active {
+  background: #003300;
+  border-color: var(--green);
+  box-shadow: 0 0 8px var(--green-dim);
+}
+
+#kb-candidates {
+  display: none;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 2px 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.kb-candidate {
+  min-width: 34px;
+  max-width: 44px;
+  height: 36px;
+  flex: 0 0 auto;
+  font-size: 16px;
+  letter-spacing: 0;
+  padding: 0;
+}
+
+.kb-pinyin-pending {
+  color: rgba(57, 255, 20, 0.5);
+  text-decoration: underline;
+}
+
+/* Animated teardrop on final tutorial slide */
+.tear-wrap {
+  height: 64px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.tear-anim {
+  filter: drop-shadow(0 0 6px #39ff14);
+  animation: tearFall 2s ease-in infinite;
+}
+
+@keyframes tearFall {
+  0%   { transform: translateY(0);    opacity: 0;  }
+  12%  { opacity: 1;                              }
+  78%  { opacity: 0.85;                           }
+  100% { transform: translateY(26px); opacity: 0; }
+}
+
+/* Tutorial overlay */
+#tutorial-overlay {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+#tutorial-overlay.hidden {
+  display: none;
+}
+
+#tutorial-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  border: 2px solid var(--green);
+  background: var(--bg-surface);
+  padding: 32px 28px 24px;
+  box-shadow: 0 0 32px var(--green-faint);
+  min-width: 240px;
+  max-width: 80vw;
+}
+
+#tutorial-gesture {
+  font-size: 36px;
+  line-height: 1;
+  text-shadow: 0 0 12px var(--green-dim);
+}
+
+#tutorial-title {
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--green);
+  text-transform: uppercase;
+}
+
+#tutorial-desc {
+  font-size: 12px;
+  color: rgba(57, 255, 20, 0.7);
+  text-align: center;
+  letter-spacing: 1px;
+  line-height: 1.8;
+  white-space: pre-line;
+}
+
+#tutorial-next-btn {
+  margin-top: 6px;
+  background: var(--bg);
+  color: var(--green);
+  border: 2px solid var(--green);
+  font-family: "Zpix", monospace;
+  font-size: 12px;
+  padding: 6px 18px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  text-shadow: 0 0 6px var(--green-dim);
+  box-shadow: 0 0 8px var(--green-faint);
+}
+
+#tutorial-next-btn:active {
+  background: #003300;
+}
+
+#tutorial-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.t-dot {
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--green-dim);
+  background: transparent;
+  display: inline-block;
+}
+
+.t-dot.active {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green-dim);
+}
+
+/* Help "?" button */
+#tutorial-help-btn {
+  display: none;
+  position: fixed;
+  right: 20px;
+  z-index: 1100;
+  background: var(--bg);
+  color: var(--green);
+  border: 2px solid var(--green);
+  font-family: "Zpix", monospace;
+  font-size: 14px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  text-align: center;
+  padding: 0;
+  text-shadow: 0 0 6px var(--green-dim);
+  box-shadow: 0 0 8px var(--green-faint);
+}
+
+#tutorial-help-btn:active {
+  background: #003300;
+}
+
+/* Leaflet zoom controls */
+.leaflet-control-zoom a {
+  background-color: #000 !important;
+  color: var(--green) !important;
+  border: 1px solid var(--green) !important;
+  text-shadow: 0 0 6px var(--green-dim) !important;
+  box-shadow: 0 0 8px var(--green-faint) !important;
+  font-family: sans-serif !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #003300 !important;
+  color: var(--green) !important;
+}
+
+.leaflet-bar {
+  border: none !important;
+  box-shadow: none !important;
+}

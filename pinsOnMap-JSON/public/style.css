@@ -1,0 +1,22 @@
+body{
+    margin: 0;
+}
+
+#welcome{
+    height:60px;
+    /* display: flex; */
+    justify-content: center;
+    align-items: center;
+    display: none;
+}
+#welcome p{
+    font-size: 1.5em;
+    color: white;
+    text-shadow: black;
+
+}
+#p5-canvas-container{
+    margin-left: 40px;
+}
+
+

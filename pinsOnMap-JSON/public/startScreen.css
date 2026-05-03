@@ -1,0 +1,41 @@
+body{
+    margin: 0;
+}
+
+#center-container{
+    width:100%;
+    height:100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    
+}
+
+#center-container p{
+    font-size: 2em;
+    display: none;
+    
+}
+#goMapButton{
+    font-size: 1.5em;
+    display: none;
+}
+#nameForm{
+    display: flex;
+    flex-direction: column;
+    height: 200px;
+    /* outline: black solid 1px; */
+    justify-content: space-evenly;
+}
+#nameForm input, #nameForm button{
+    font-size: 1.5em;
+}
+
+#nameForm button{
+    visibility: hidden;
+}
+
+
+
+

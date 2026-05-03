@@ -1,0 +1,191 @@
+@font-face {
+  font-family: "Zpix";
+  src: url("assets/zpix.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  --green: #39ff14;
+  --green-dim: rgba(57, 255, 20, 0.4);
+  --green-faint: rgba(57, 255, 20, 0.15);
+  --bg: #000;
+  --bg-surface: #0d0d0d;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Zpix", monospace;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  touch-action: manipulation;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--green);
+  overflow: hidden;
+}
+
+/* scanlines overlay */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.25) 50%),
+    linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.015), rgba(0,0,255,0.03));
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+#center-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 20px;
+}
+
+#center-container p {
+  font-size: 1.2em;
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px rgba(57, 255, 20, 0.7);
+  display: none;
+  margin: 0;
+}
+
+#nameForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+#name-label {
+  margin: 0;
+  font-size: 0.75em;
+  letter-spacing: 4px;
+  color: var(--green-dim);
+}
+
+#name-display {
+  font-size: 1em;
+  letter-spacing: 2px;
+  background: var(--bg-surface);
+  border: 1px solid var(--green-dim);
+  color: var(--green);
+  padding: 8px 14px;
+  width: 260px;
+  min-height: 2.2em;
+  text-align: center;
+  box-shadow: 0 0 8px var(--green-faint);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.kb-cursor {
+  /* cursor blink animation */
+  animation: blink 1s step-start infinite;
+  color: var(--green);
+}
+
+#submitNameButton {
+  font-size: 1em;
+  letter-spacing: 2px;
+  background: var(--bg);
+  color: var(--green);
+  border: 2px solid var(--green);
+  padding: 8px 20px;
+  cursor: pointer;
+  text-shadow: 0 0 6px var(--green-dim);
+  font-family: "Zpix", monospace;
+  visibility: hidden;
+}
+
+#submitNameButton:active {
+  background: #003300;
+}
+
+/* Fake keyboard */
+#fake-keyboard {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #050505;
+  border-top: 1px solid var(--green);
+  padding: 6px 4px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: 0 -4px 20px var(--green-faint);
+}
+
+.kb-row {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.kb-key {
+  background: #0a0a0a;
+  border: 1px solid var(--green-dim);
+  color: var(--green);
+  font-family: "Zpix", monospace;
+  font-size: 12px;
+  height: 40px;
+  min-width: 30px;
+  flex: 1;
+  max-width: 40px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: background 0.05s, box-shadow 0.05s;
+}
+
+.kb-key:active {
+  background: #003300;
+  box-shadow: 0 0 8px var(--green-dim);
+  color: #fff;
+}
+
+.kb-shift,
+.kb-backspace {
+  max-width: 48px;
+  font-size: 14px;
+}
+
+.kb-shift.active {
+  background: #003300;
+  border-color: var(--green);
+  box-shadow: 0 0 8px var(--green-dim);
+}
+
+.kb-space {
+  max-width: 200px;
+  flex: 4;
+  font-size: 10px;
+  letter-spacing: 3px;
+}
+
+.kb-enter {
+  max-width: 90px;
+  flex: 2;
+  font-size: 10px;
+  letter-spacing: 1px;
+  border-color: var(--green);
+  text-shadow: 0 0 6px var(--green-dim);
+}

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+    />
+
+    <link rel="manifest" href="manifest.json" />
+
+    <title>NETWORK</title>
+
+    <link rel="stylesheet" type="text/css" href="style.css" />
+
+    <script src="lib/p5.js"></script>
+    <script src="lib/mappa.js" type="text/javascript"></script>
+    <script src="socket.io/socket.io.js"></script>
+    <!-- <script src="lib/p5.sound.js"></script> -->
+  </head>
+
+  <body>
+    <span id="day-counter">Day 0</span>
+    <button id="changeLocationButton">change location</button>
+
+    <div id="confirmLocationGroup">
+      <button id="confirmLocationButton">Confirm Location</button>
+      <button id="cancelLocationButton">✕</button>
+    </div>
+
+    <div id="locationHint">double tap somewhere you like</div>
+
+    <input id="kb-input" type="text" autocomplete="off" readonly style="position:fixed;opacity:0;pointer-events:none;" />
+
+    <!-- Tutorial overlay -->
+    <div id="tutorial-overlay">
+      <div id="tutorial-card">
+        <div id="tutorial-gesture"></div>
+        <div id="tutorial-title"></div>
+        <div id="tutorial-desc"></div>
+        <button id="tutorial-next-btn">next →</button>
+        <div id="tutorial-dots">
+          <span class="t-dot"></span>
+          <span class="t-dot"></span>
+          <span class="t-dot"></span>
+          <span class="t-dot"></span>
+          <span class="t-dot"></span>
+        </div>
+      </div>
+    </div>
+    <button id="tutorial-help-btn">?</button>
+
+    <div class="main-wrapper">
+      <!-- <h1>Project Title</h1> -->
+
+      <!-- the following div will contain the p5 canvas. -->
+      <div id="p5-canvas-container">
+        <!-- p5 canvas will be appended here. -->
+      </div>
+
+      <!-- <p>Project Description</p> -->
+    </div>
+
+    <div id="fake-keyboard">
+      <div id="kb-display"><span id="kb-display-text"></span><span class="kb-cursor">█</span></div>
+      <div id="kb-candidates"></div>
+      <div class="kb-row">
+        <button class="kb-key" data-char="q">Q</button>
+        <button class="kb-key" data-char="w">W</button>
+        <button class="kb-key" data-char="e">E</button>
+        <button class="kb-key" data-char="r">R</button>
+        <button class="kb-key" data-char="t">T</button>
+        <button class="kb-key" data-char="y">Y</button>
+        <button class="kb-key" data-char="u">U</button>
+        <button class="kb-key" data-char="i">I</button>
+        <button class="kb-key" data-char="o">O</button>
+        <button class="kb-key" data-char="p">P</button>
+      </div>
+      <div class="kb-row">
+        <button class="kb-key" data-char="a">A</button>
+        <button class="kb-key" data-char="s">S</button>
+        <button class="kb-key" data-char="d">D</button>
+        <button class="kb-key" data-char="f">F</button>
+        <button class="kb-key" data-char="g">G</button>
+        <button class="kb-key" data-char="h">H</button>
+        <button class="kb-key" data-char="j">J</button>
+        <button class="kb-key" data-char="k">K</button>
+        <button class="kb-key" data-char="l">L</button>
+      </div>
+      <div class="kb-row">
+        <button class="kb-key kb-shift" id="kb-shift-btn">⇧</button>
+        <button class="kb-key" data-char="z">Z</button>
+        <button class="kb-key" data-char="x">X</button>
+        <button class="kb-key" data-char="c">C</button>
+        <button class="kb-key" data-char="v">V</button>
+        <button class="kb-key" data-char="b">B</button>
+        <button class="kb-key" data-char="n">N</button>
+        <button class="kb-key" data-char="m">M</button>
+        <button class="kb-key kb-backspace" id="kb-backspace-btn">⌫</button>
+      </div>
+      <div class="kb-row">
+        <button class="kb-key kb-lang" id="kb-lang-btn">中</button>
+        <button class="kb-key kb-space" id="kb-space-btn">SPACE</button>
+        <button class="kb-key kb-enter" id="kb-enter-btn">SEND ↵</button>
+      </div>
+    </div>
+
+    <!-- function to request orientation -->
+    <script src="requestGPS.js"></script>
+    <!-- the script tag below should always be at the bottom, right before the closing body tag -->
+    <script src="sketch.js"></script>
+  </body>
+</html>

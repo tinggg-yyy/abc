@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+ 
+  
+  <link rel="manifest" href="manifest.json" />
+
+  <title>Simple Chat</title>
+
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+
+  <!-- <script src="lib/p5.js"></script> -->
+  <!-- <script src="lib/p5.sound.js"></script> -->
+  
+  <!-- include socket.io library: -->
+  <!-- <script src="/socket.io/socket.io.js"></script>  -->
+  <script src="socket.io/socket.io.js"></script>  
+  
+
+</head>
+
+<body>
+
+  <div class="main-wrapper">
+    
+    <div id="nameWrapper">
+        <input type="text" id="nameInput" maxlength="16" placeholder="Your Name"><p> 👈 your name!</p>
+    </div>
+
+    <div id="threadWrapper">
+        <ul>
+            <!-- <li class="fromMe"><span class="who">someone</span><span class="words">blablablabla blabla</span></li>
+            <li class="fromOthers"><span class="who">someone</span><span class="words">blabla</span></li>
+            <li class="fromMe"><span class="who">someone</span><span class="words">blabla blabla</span></li>
+            <li class="fromOthers"><span class="who">someone</span><span class="words">blabla</span></li> -->
+        </ul>
+    </div>
+
+    <div>
+        <form id="chatForm">
+            <input id="newMessage" placeholder="Type something" autocomplete="off" />
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+
+  </div>
+
+
+
+  <!-- the script tag below should always be at the bottom, right before the closing body tag -->
+  <script src="script.js"></script>
+</body>
+
+</html>

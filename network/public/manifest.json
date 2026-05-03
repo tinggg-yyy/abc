@@ -1,0 +1,12 @@
+{
+  "name": "↵",
+  "icons": [
+    {
+      "src": "assets/sendicon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "orientation": "Natural",
+  "display": "standalone"
+}

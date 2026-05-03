@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+ 
+  
+  <link rel="manifest" href="manifest.json" />
+
+  <title>Simple Chat</title>
+
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+
+  <script src="lib/p5.js"></script>
+  <script src="lib/p5.sound.js"></script>
+  
+  <!-- include socket.io library: -->
+  <!-- <script src="/socket.io/socket.io.js"></script>  -->
+  <script src="socket.io/socket.io.js"></script>  
+  
+
+</head>
+
+<body>
+
+  <div id="main-wrapper">
+    <div id="captureArea">
+      <div id="canvas-wrapper"></div>
+      <button id="captureButton">SNAP!</button>
+      <button id="sendButton">Send to Server</button>
+    </div>
+    
+
+
+    <div id="album">
+      <p>album</p>
+      <div id="images"></div>
+    </div>
+  </div>
+
+  
+  <audio id="camSound" src="231286__ulose2piranha__5dmkii-shutter-sound.wav"></audio>
+  <!-- the script tag below should always be at the bottom, right before the closing body tag -->
+  <script src="script.js"></script>
+</body>
+
+</html>
