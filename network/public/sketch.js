@@ -9,7 +9,7 @@ let me; // MyPoint instance
 // user identity
 let username = localStorage.getItem("user-nameTEST");
 
-// === Day system: 2 real-world minutes = 1 virtual day; 2 days since last message = broken ===
+// Day system: 2 real-world minutes = 1 virtual day; 2 days since last message => broken relationship
 // Uses wall-clock time (Date.now()) — no tab-visibility tracking needed.
 // Both users independently compute the same day number, so broken-connection state is identical.
 const MS_PER_DAY = 2 * 60 * 1000;
@@ -150,7 +150,11 @@ function touchStarted() {
                  (m.fromUserId === tappedUserId && m.toUserId === myUserId);
         });
         if (connected) {
-          inspectedUserId = inspectedUserId === tappedUserId ? null : tappedUserId;
+          if (inspectedUserId === tappedUserId) {
+            inspectedUserId = null;
+          } else {
+            inspectedUserId = tappedUserId;
+          }
         }
       }
     }
@@ -602,13 +606,15 @@ function draw() {
 
     // --- Draw lines between users who have chatted (one line per pair) ---
     // Mutually selected → bright green; otherwise → dim green
-    const chattedPairs = new Set();
+    // Line thickness grows with message count: 1px base, up to 5px
+    const chattedPairs = new Map(); // pairKey → message count
     for (let msg of clientMessages) {
       if (msg.fromUserId && msg.toUserId) {
-        chattedPairs.add([msg.fromUserId, msg.toUserId].sort().join("|"));
+        const key = [msg.fromUserId, msg.toUserId].sort().join("|");
+        chattedPairs.set(key, (chattedPairs.get(key) || 0) + 1);
       }
     }
-    for (let pairKey of chattedPairs) {
+    for (let [pairKey, msgCount] of chattedPairs) {
       let [uid1, uid2] = pairKey.split("|");
       let loc1 = locMap[uid1];
       let loc2 = locMap[uid2];
@@ -616,12 +622,14 @@ function draw() {
       let pos1 = myMap.latLngToPixel(loc1.lat, loc1.lng);
       let pos2 = myMap.latLngToPixel(loc2.lat, loc2.lng);
       let isMutuallySelected = connSet.has(uid1 + "-" + uid2) && connSet.has(uid2 + "-" + uid1);
+      // thickness: 1 at 1 msg, caps at 5 around 40+ msgs
+      let w = min(1 + Math.sqrt(msgCount - 1) * 0.6, 5);
       if (isLineBroken(uid1, uid2)) {
         stroke(100, 100, 100, 110);
       } else {
         stroke(isMutuallySelected ? color(57, 255, 20) : color(57, 255, 20, 110));
       }
-      strokeWeight(1);
+      strokeWeight(w);
       line(pos1.x, pos1.y, pos2.x, pos2.y);
     }
 
@@ -641,7 +649,11 @@ function draw() {
       let toPos = myMap.latLngToPixel(toLoc.lat, toLoc.lng);
       let isMutual = connSet.has(conn.fromUserId + "-" + conn.toUserId) &&
                      connSet.has(conn.toUserId + "-" + conn.fromUserId);
-      stroke(isMutual ? "#39ff14" : "#ff3131");
+      if (isMutual) {
+        stroke("#39ff14");
+      } else {
+        stroke("#ff3131");
+      }
       strokeWeight(1);
       line(fromPos.x, fromPos.y, toPos.x, toPos.y);
     }
@@ -718,8 +730,14 @@ function draw() {
 
       // Perpendicular offset direction — determined by userId sort order so both
       // ends of the connection see the same offset side
-      let canonicalFromPos = msg.fromUserId < msg.toUserId ? fromPos : toPos;
-      let canonicalToPos = msg.fromUserId < msg.toUserId ? toPos : fromPos;
+      let canonicalFromPos, canonicalToPos;
+      if (msg.fromUserId < msg.toUserId) {
+        canonicalFromPos = fromPos;
+        canonicalToPos = toPos;
+      } else {
+        canonicalFromPos = toPos;
+        canonicalToPos = fromPos;
+      }
       let cdx = canonicalToPos.x - canonicalFromPos.x;
       let cdy = canonicalToPos.y - canonicalFromPos.y;
       let clen = Math.sqrt(cdx * cdx + cdy * cdy) || 1;
@@ -727,7 +745,12 @@ function draw() {
       let perpY = cdx / clen;
 
       // Smaller userId → positive side; larger → negative side
-      let side = msg.fromUserId < msg.toUserId ? 1 : -1;
+      let side;
+      if (msg.fromUserId < msg.toUserId) {
+        side = 1;
+      } else {
+        side = -1;
+      }
       let offsetX = perpX * SIDE_OFFSET * side;
       let offsetY = perpY * SIDE_OFFSET * side;
 
@@ -752,9 +775,17 @@ function draw() {
         msgFillColor = color(100, 100, 100, 150);
       } else if (msg.fromUserId === myUserId) {
         let count = myMsgCountTo[msg.toUserId] || 0;
-        msgFillColor = key === "__history__" ? getMsgColor(count, 110) : getMsgColor(count);
+        if (key === "__history__") {
+          msgFillColor = getMsgColor(count, 110);
+        } else {
+          msgFillColor = getMsgColor(count);
+        }
       } else {
-        msgFillColor = key === "__history__" ? color(57, 255, 20, 110) : color(57, 255, 20);
+        if (key === "__history__") {
+          msgFillColor = color(57, 255, 20, 110);
+        } else {
+          msgFillColor = color(57, 255, 20);
+        }
       }
       noStroke();
       fill(msgFillColor);
@@ -786,9 +817,12 @@ function draw() {
         let x = lerp(fromPos.x, toPos.x, progress) + offsetX;
         let y = lerp(fromPos.y, toPos.y, progress) + offsetY;
 
-        let displayChar = isMyConversation
-          ? msg.text[i]
-          : GARBLE_CHARS[Math.abs(Math.floor(Math.sin(garbleSeed + i * 97) * GARBLE_CHARS.length)) % GARBLE_CHARS.length];
+        let displayChar;
+        if (isMyConversation) {
+          displayChar = msg.text[i];
+        } else {
+          displayChar = GARBLE_CHARS[Math.abs(Math.floor(Math.sin(garbleSeed + i * 97) * GARBLE_CHARS.length)) % GARBLE_CHARS.length];
+        }
 
         push();
         translate(x, y);
@@ -854,7 +888,11 @@ function draw() {
             let isGreen = loc.userId === myUserId || isSelected;
             push();
             noStroke();
-            fill(isGreen ? color(57, 255, 20, progress * 230) : color(255, 49, 49, progress * 230));
+            if (isGreen) {
+              fill(color(57, 255, 20, progress * 230));
+            } else {
+              fill(color(255, 49, 49, progress * 230));
+            }
             circle(x, y, diameter * (1 + progress * 1.5));
             pop();
           } else {
@@ -898,7 +936,11 @@ function windowResized() {
 function syncLocationButton() {
   const btn = document.getElementById("changeLocationButton");
   if (btn.style.display === "none") return; // hidden while in change-location mode
-  btn.textContent = findLocByUserId(myUserId) ? "change location" : "add location";
+  if (findLocByUserId(myUserId)) {
+    btn.textContent = "change location";
+  } else {
+    btn.textContent = "add location";
+  }
 }
 
 // GPS callback: fired by requestGPS.js whenever a new position is available
@@ -1316,7 +1358,11 @@ function kbInput() {
 
 // Return candidate characters for the current pinyin buffer, or [] if empty
 function kbGetCandidates() {
-  return pinyinBuffer ? pinyinDict[pinyinBuffer] || [] : [];
+  if (pinyinBuffer) {
+    return pinyinDict[pinyinBuffer] || [];
+  } else {
+    return [];
+  }
 }
 
 // Render candidate characters as clickable buttons above the keyboard
@@ -1385,7 +1431,12 @@ document.querySelectorAll(".kb-key[data-char]").forEach(function (btn) {
       return;
     }
     // English mode: honour Shift for capitalisation, then auto-release Shift
-    const char = kbShift ? btn.dataset.char.toUpperCase() : btn.dataset.char.toLowerCase();
+    let char;
+    if (kbShift) {
+      char = btn.dataset.char.toUpperCase();
+    } else {
+      char = btn.dataset.char.toLowerCase();
+    }
     kbInput().value += char;
     if (kbShift) {
       kbShift = false;
@@ -1429,8 +1480,16 @@ document.getElementById("kb-space-btn").addEventListener("click", function () {
 
 // Language toggle (中 / EN): switch between English and Chinese pinyin input
 document.getElementById("kb-lang-btn").addEventListener("click", function () {
-  kbMode = kbMode === "en" ? "zh" : "en";
-  this.textContent = kbMode === "zh" ? "EN" : "中"; // shows the language to switch TO
+  if (kbMode === "en") {
+    kbMode = "zh";
+  } else {
+    kbMode = "en";
+  }
+  if (kbMode === "zh") {
+    this.textContent = "EN";
+  } else {
+    this.textContent = "中";
+  } // shows the language to switch TO
   this.classList.toggle("active", kbMode === "zh");
   pinyinBuffer = "";
   kbRefresh();
@@ -1536,7 +1595,11 @@ function tutorialShow(step) {
   document.getElementById("tutorial-desc").textContent = slide.desc;
 
   const nextBtn = document.getElementById("tutorial-next-btn");
-  nextBtn.textContent = step < tutorialSlides.length - 1 ? "next →" : "got it ✓";
+  if (step < tutorialSlides.length - 1) {
+    nextBtn.textContent = "next →";
+  } else {
+    nextBtn.textContent = "got it ✓";
+  }
 
   document.querySelectorAll(".t-dot").forEach(function (dot, i) {
     dot.classList.toggle("active", i === step);
