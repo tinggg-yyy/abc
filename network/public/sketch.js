@@ -240,9 +240,7 @@ document.getElementById("confirmLocationButton").addEventListener("click", funct
 // Cancel location-change mode button
 document.getElementById("cancelLocationButton").addEventListener("click", exitLocationMode);
 
-// ============================================================
-// Location data
-// ============================================================
+/* Location Data */
 let locations = []; // { userId, username, lat, lng }
 
 function findLocByUserId(userId) {
@@ -666,7 +664,7 @@ function draw() {
       delete loopingMessages["__history__"];
     }
 
-    // --- History playback mode ---
+    /*History playback mode */
     // Long-press on a user: loop their last 10 messages with us in sequence
     if (historyViewUserId) {
       let historyMsgs = getConversationMessages(myUserId, historyViewUserId).slice(-10);
@@ -836,7 +834,7 @@ function draw() {
       }
     }
 
-    // --- Chat-web inspection view (triggered by double-tapping a connected user) ---
+    /*Chat-web inspection view (triggered by double-tapping a connected user) */
     if (inspectedUserId) {
       let inspLoc = locMap[inspectedUserId];
       if (inspLoc) {
@@ -862,7 +860,7 @@ function draw() {
       }
     }
 
-    // --- Draw user dots and usernames ---
+    /* Draw user dots and usernames */
     for (let loc of locations) {
       let posOnCanvas = myMap.latLngToPixel(loc.lat, loc.lng);
       let x = posOnCanvas.x;
@@ -1041,7 +1039,7 @@ const pinyinDict = {
   dun: ["顿", "盾", "吨", "蹲"],
   duo: ["多", "夺", "朵", "躲", "舵", "堕"],
   e: ["饿", "恶", "鹅", "额", "扼", "遏"],
-  en: ["恩"],
+  en: ["恩", "嗯", "蒽", "摁","😐"],
   er: ["二", "而", "耳", "儿", "尔"],
   fa: ["发", "法", "乏", "罚", "筏"],
   fan: ["反", "饭", "范", "烦", "翻", "凡", "犯", "贩", "帆", "繁"],
@@ -1144,6 +1142,7 @@ const pinyinDict = {
   mang: ["忙", "茫", "盲", "芒"],
   mao: ["毛", "猫", "帽", "冒", "贸", "矛", "锚", "茂"],
   mei: ["没", "美", "每", "妹", "眉", "煤", "霉", "梅", "媒"],
+  me:["么", "麽", "嚒"],
   men: ["们", "门", "闷"],
   meng: ["梦", "猛", "盟", "蒙", "朦"],
   mi: ["米", "秘", "密", "迷", "蜜", "弥", "靡"],
@@ -1173,8 +1172,9 @@ const pinyinDict = {
   nu: ["努", "奴", "怒"],
   nuan: ["暖"],
   nuo: ["诺", "挪"],
-  nv: ["女", "虐"],
-  o: ["哦", "噢"],
+  nv: ["女"],
+  nve: ["虐"],
+  o: ["哦", "噢", "😯"],
   ou: ["欧", "偶", "呕", "藕", "殴"],
   pa: ["怕", "爬", "啪", "趴"],
   pai: ["拍", "排", "派", "徘"],
@@ -1289,7 +1289,7 @@ const pinyinDict = {
   xun: ["训", "寻", "迅", "询", "熏", "巡", "驯"],
   ya: ["压", "牙", "亚", "呀", "雅", "鸭", "崖", "涯"],
   yan: ["眼","言","颜","燕","演","盐","严","验","烟","研","延","掩","艳","殷","宴"],
-  yang: ["样", "阳", "养", "羊", "杨", "洋", "仰", "扬", "痒"],
+  yang: ["样", "阳", "养", "羊", "杨", "洋", "仰", "扬", "痒", "秧"],
   yao: ["要", "药", "腰", "摇", "遥", "咬", "邀", "谣"],
   ye: ["也", "夜", "野", "叶", "爷", "业", "液", "页"],
   yi: ["一","以","意","易","已","义","艺","医","依","移","宜","疑","异","益","亿","忆","役","抑","毅"],
@@ -1323,17 +1323,17 @@ const pinyinDict = {
   zhu: ["主", "住", "注", "助", "著", "猪", "祝", "珠", "竹", "柱", "煮"],
   zhua: ["抓", "爪"],
   zhuan: ["转", "专", "赚", "砖"],
-  zhuang: ["装", "庄", "撞", "壮", "幢"],
-  zhui: ["追", "坠"],
+  zhuang: ["装", "庄", "撞", "壮", "幢", "妆"],
+  zhui: ["追", "坠", "赘"],
   zhun: ["准"],
-  zhuo: ["桌", "捉", "拙", "琢"],
-  zi: ["子", "自", "字", "紫", "资", "姿", "滋", "梓"],
-  zong: ["总", "综", "宗", "纵", "棕"],
-  zou: ["走", "奏", "邹"],
-  zu: ["组", "足", "阻", "族", "祖"],
-  zui: ["最", "嘴", "罪", "醉"],
-  zun: ["尊", "遵"],
-  zuo: ["做", "作", "坐", "左", "座", "昨"],
+  zhuo: ["桌", "捉", "拙", "琢", "茁"],
+  zi: ["子", "自", "字", "紫", "资", "姿", "滋", "梓", "淄", "孜"],
+  zong: ["总", "综", "宗", "纵", "棕", "踪"],
+  zou: ["走", "奏", "邹", "鄹"],
+  zu: ["组", "足", "阻", "族", "祖", "租"],
+  zui: ["最", "嘴", "罪", "醉", "蕞"],
+  zun: ["尊", "遵", "鳟"],
+  zuo: ["做", "作", "坐", "左", "座", "昨", "佐"],
 };
 
 // Convenience accessor for the message input element
@@ -1512,7 +1512,7 @@ document.getElementById("kb-enter-btn").addEventListener("click", function () {
     setTimeout(() => { displayEl.textContent = text.slice(i); }, i * charDelay);
   }
 });
-// ---- end Fake Keyboard ----
+/*end Fake Keyboard */
 
 
 /* MyPoint: "me" on the map */
