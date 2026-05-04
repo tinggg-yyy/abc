@@ -36,6 +36,7 @@ let connText = fs.readFileSync("connectionData.json", "utf8");
 let connData = JSON.parse(connText);
 connections = connData.connections || [];
 let messages = connData.messages || [];
+let brokenConnections = connData.brokenConnections || []; // array of sorted "A|B" pair keys
 
 io.on("connection", (socket) => {
   // we manage the connection inside here
@@ -54,6 +55,7 @@ io.on("connection", (socket) => {
     socket.emit("historical-locations", locations);
     socket.emit("historical-connections", connections);
     socket.emit("historical-messages", messages);
+    socket.emit("historical-broken-connections", brokenConnections);
 
     // only announce if this is a genuinely new user (no saved location = first time)
     let existingLoc = locations.find((l) => l.userId === data.userId);
@@ -140,7 +142,7 @@ io.on("connection", (socket) => {
     
     fs.writeFileSync(
       "connectionData.json",
-      JSON.stringify({ connections, messages }, null, 2),
+      JSON.stringify({ connections, messages, brokenConnections }, null, 2),
       "utf8",
     );
     io.emit("connections-from-server", connections);
@@ -158,7 +160,7 @@ io.on("connection", (socket) => {
     messages.push(msgData);
     fs.writeFileSync(
       "connectionData.json",
-      JSON.stringify({ connections, messages }, null, 2),
+      JSON.stringify({ connections, messages, brokenConnections }, null, 2),
       "utf8",
     );
     io.emit("message-travel", msgData);
@@ -175,6 +177,19 @@ io.on("connection", (socket) => {
       timestamp: new Date().toISOString(),
     };
     io.emit("chat-message", msgData);
+  });
+
+  socket.on("break-connection", function (data) {
+    const key = [data.userId1, data.userId2].sort().join("|");
+    if (!brokenConnections.includes(key)) {
+      brokenConnections.push(key);
+      fs.writeFileSync(
+        "connectionData.json",
+        JSON.stringify({ connections, messages, brokenConnections }, null, 2),
+        "utf8",
+      );
+      io.emit("broken-connection-from-server", { key });
+    }
   });
 
   socket.on("disconnect", function () {
