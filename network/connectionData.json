@@ -1,3 +1,65 @@
 {
-  
+  "connections": [
+    {
+      "fromUserId": "80b07e71-e092-4aa7-9b94-d03ff37087aa",
+      "toUserId": "86deba94-9987-4786-9dc2-18242b5a2a29"
+    }
+  ],
+  "messages": [
+    {
+      "fromUserId": "86deba94-9987-4786-9dc2-18242b5a2a29",
+      "toUserId": "80b07e71-e092-4aa7-9b94-d03ff37087aa",
+      "text": "uuu",
+      "timestamp": "2026-05-04T17:02:07.130Z"
+    },
+    {
+      "fromUserId": "80b07e71-e092-4aa7-9b94-d03ff37087aa",
+      "toUserId": "86deba94-9987-4786-9dc2-18242b5a2a29",
+      "text": "iii",
+      "timestamp": "2026-05-04T17:02:11.075Z"
+    },
+    {
+      "fromUserId": "80b07e71-e092-4aa7-9b94-d03ff37087aa",
+      "toUserId": "86deba94-9987-4786-9dc2-18242b5a2a29",
+      "text": "好",
+      "timestamp": "2026-05-04T17:02:32.574Z"
+    },
+    {
+      "fromUserId": "86deba94-9987-4786-9dc2-18242b5a2a29",
+      "toUserId": "80b07e71-e092-4aa7-9b94-d03ff37087aa",
+      "text": "b",
+      "timestamp": "2026-05-04T17:02:47.749Z"
+    },
+    {
+      "fromUserId": "80b07e71-e092-4aa7-9b94-d03ff37087aa",
+      "toUserId": "86deba94-9987-4786-9dc2-18242b5a2a29",
+      "text": "j",
+      "timestamp": "2026-05-04T17:02:49.640Z"
+    },
+    {
+      "fromUserId": "80b07e71-e092-4aa7-9b94-d03ff37087aa",
+      "toUserId": "86deba94-9987-4786-9dc2-18242b5a2a29",
+      "text": "ui",
+      "timestamp": "2026-05-04T17:02:52.432Z"
+    },
+    {
+      "fromUserId": "86deba94-9987-4786-9dc2-18242b5a2a29",
+      "toUserId": "80b07e71-e092-4aa7-9b94-d03ff37087aa",
+      "text": "hh",
+      "timestamp": "2026-05-04T17:02:54.562Z"
+    },
+    {
+      "fromUserId": "80b07e71-e092-4aa7-9b94-d03ff37087aa",
+      "toUserId": "86deba94-9987-4786-9dc2-18242b5a2a29",
+      "text": "uio",
+      "timestamp": "2026-05-04T17:02:56.977Z"
+    },
+    {
+      "fromUserId": "86deba94-9987-4786-9dc2-18242b5a2a29",
+      "toUserId": "80b07e71-e092-4aa7-9b94-d03ff37087aa",
+      "text": "uuu",
+      "timestamp": "2026-05-04T17:02:59.732Z"
+    }
+  ],
+  "brokenConnections": []
 }

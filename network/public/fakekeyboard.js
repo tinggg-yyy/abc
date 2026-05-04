@@ -366,3 +366,189 @@ const pinyinDict = {
   zun: ["尊", "遵", "鳟"],
   zuo: ["做", "作", "坐", "左", "座", "昨", "佐"],
 };
+
+/* Fake Keyboard */
+// Mobile browsers resize the page when the system keyboard opens,
+// which disrupts map interactions. We use a fixed-position custom keyboard instead.
+let kbShift = false;
+let kbMode = "en";     // "en" = English | "zh" = Chinese pinyin
+let pinyinBuffer = ""; // accumulated pinyin letters, cleared after character selection
+
+// Convenience accessor for the message input element
+function kbInput() {
+  return document.getElementById("kb-input");
+}
+
+// Return candidate characters for the current pinyin buffer, or [] if empty
+function kbGetCandidates() {
+  if (pinyinBuffer) {
+    return pinyinDict[pinyinBuffer] || [];
+  } else {
+    return [];
+  }
+}
+
+// Render candidate characters as clickable buttons above the keyboard
+function kbShowCandidates() {
+  const candidates = kbGetCandidates();
+  const row = document.getElementById("kb-candidates");
+  if (candidates.length === 0) {
+    row.style.display = "none";
+    row.innerHTML = "";
+    updateSideButtonPositions();
+    return;
+  }
+  row.style.display = "flex";
+  row.innerHTML = "";
+  candidates.forEach(function (char) {
+    const btn = document.createElement("button");
+    btn.className = "kb-key kb-candidate";
+    btn.textContent = char;
+    btn.addEventListener("click", function () {
+      kbInput().value += char;
+      pinyinBuffer = "";
+      kbRefresh(); // update candidates + display in one call
+    });
+    row.appendChild(btn);
+  });
+  updateSideButtonPositions();
+}
+
+// Update the message preview above the keyboard.
+// In Chinese mode, pending pinyin is shown in grey to distinguish it from confirmed text.
+function kbUpdateDisplay() {
+  const displayEl = document.getElementById("kb-display-text");
+  if (kbMode === "zh" && pinyinBuffer) {
+    displayEl.innerHTML = "";
+    const msgSpan = document.createElement("span");
+    msgSpan.textContent = kbInput().value;
+    const pinyinSpan = document.createElement("span");
+    pinyinSpan.className = "kb-pinyin-pending";
+    pinyinSpan.textContent = pinyinBuffer;
+    displayEl.appendChild(msgSpan);
+    displayEl.appendChild(pinyinSpan);
+  } else {
+    displayEl.textContent = kbInput().value;
+  }
+}
+
+// Combined helper: refresh candidates row AND display text (always called together)
+function kbRefresh() {
+  kbShowCandidates();
+  kbUpdateDisplay();
+}
+
+// Prevent an element's touches from bubbling to the map (avoids false gestures)
+function preventTouchBubble(id) {
+  const el = document.getElementById(id);
+  const stop = e => e.stopPropagation();
+  el.addEventListener("touchstart", stop, { passive: false });
+  el.addEventListener("touchend",   stop, { passive: false });
+}
+preventTouchBubble("fake-keyboard");
+
+// Letter/number keys: append to pinyin buffer (Chinese mode) or directly to message (English mode)
+document.querySelectorAll(".kb-key[data-char]").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    if (kbMode === "zh") {
+      pinyinBuffer += btn.dataset.char.toLowerCase();
+      kbRefresh();
+      return;
+    }
+    // English mode: honour Shift for capitalisation, then auto-release Shift
+    let char;
+    if (kbShift) {
+      char = btn.dataset.char.toUpperCase();
+    } else {
+      char = btn.dataset.char.toLowerCase();
+    }
+    kbInput().value += char;
+    if (kbShift) {
+      kbShift = false;
+      document.getElementById("kb-shift-btn").classList.remove("active");
+    }
+    kbUpdateDisplay();
+  });
+});
+
+// Shift key: toggle capitalisation mode
+document.getElementById("kb-shift-btn").addEventListener("click", function () {
+  kbShift = !kbShift;
+  this.classList.toggle("active", kbShift);
+});
+
+// Backspace: delete from pinyin buffer first (Chinese), then from the message text
+document.getElementById("kb-backspace-btn").addEventListener("click", function () {
+  if (kbMode === "zh" && pinyinBuffer) {
+    pinyinBuffer = pinyinBuffer.slice(0, -1);
+    kbRefresh();
+    return;
+  }
+  kbInput().value = kbInput().value.slice(0, -1);
+  kbUpdateDisplay();
+});
+
+// Space: auto-select the first candidate (Chinese mode); insert a space (English mode)
+document.getElementById("kb-space-btn").addEventListener("click", function () {
+  if (kbMode === "zh" && pinyinBuffer) {
+    const candidates = kbGetCandidates();
+    if (candidates.length > 0) {
+      kbInput().value += candidates[0];
+      pinyinBuffer = "";
+      kbRefresh();
+    }
+    return;
+  }
+  kbInput().value += " ";
+  kbUpdateDisplay();
+});
+
+// Language toggle (中 / EN): switch between English and Chinese pinyin input
+document.getElementById("kb-lang-btn").addEventListener("click", function () {
+  if (kbMode === "en") {
+    kbMode = "zh";
+  } else {
+    kbMode = "en";
+  }
+  if (kbMode === "zh") {
+    this.textContent = "EN";
+  } else {
+    this.textContent = "中";
+  } // shows the language to switch TO
+  this.classList.toggle("active", kbMode === "zh");
+  pinyinBuffer = "";
+  kbRefresh();
+});
+
+// Enter/Send key:
+// - Chinese mode with pending pinyin: discard buffer (no partial send)
+// - User selected: send a point-to-point message (triggers flying animation)
+// - No selection: broadcast to all (chat-message)
+// After sending, the display text disappears character by character (flies away visually)
+document.getElementById("kb-enter-btn").addEventListener("click", function () {
+  if (kbMode === "zh" && pinyinBuffer) {
+    pinyinBuffer = "";
+    kbRefresh();
+    return;
+  }
+  const inputEl = kbInput();
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  if (selectedUserId) {
+    if (isLineBroken(myUserId, selectedUserId)) return; // broken connection, cannot send
+    socket.emit("message-travel", { toUserId: selectedUserId, text });
+    if (historyViewUserId) exitHistoryView();
+  } else {
+    socket.emit("chat-message", { text });
+  }
+
+  inputEl.value = "";
+
+  // Animate the display text flying away one character at a time
+  const charDelay = 200;
+  const displayEl = document.getElementById("kb-display-text");
+  for (let i = 0; i <= text.length; i++) {
+    setTimeout(() => { displayEl.textContent = text.slice(i); }, i * charDelay);
+  }
+});
