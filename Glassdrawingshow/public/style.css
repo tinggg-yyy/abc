@@ -1,0 +1,122 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+canvas {
+  display: block;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── Intro overlay ── */
+#intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #000;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#intro-overlay.hidden {
+  display: none;
+}
+
+.intro-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4vh;
+  padding: 0 3vw;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.intro-title {
+  font-size: clamp(13px, 2.2vw, 22px);
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  margin: 0 0 1.2vh;
+  opacity: 0.95;
+}
+
+.intro-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2vh;
+}
+
+.intro-block p,
+.intro-note p {
+  margin: 0;
+  font-size: clamp(10px, 1.5vw, 15px);
+  font-weight: 200;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.intro-note {
+  margin-top: 1.2vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2vh;
+  opacity: 0.85;
+}
+
+.intro-note p {
+  font-size: clamp(9px, 1.2vw, 13px);
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.intro-center {
+  flex: 0 0 36vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#intro-gif {
+  width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  filter: invert(1);
+  transform: rotate(90deg);
+  transform-origin: center center;
+}
+
+/* ── Enter button ── */
+#start-btn {
+  position: fixed;
+  bottom: 4vh;
+  right: 4vw;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  font-size: clamp(22px, 4vw, 40px);
+  line-height: 1;
+  padding: 0.6em 0.8em;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+  transition: opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#start-btn:active {
+  opacity: 1;
+}
+

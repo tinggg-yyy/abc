@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+    />
+
+    <link rel="manifest" href="manifest.json" />
+
+    <title>GlassDrawing</title>
+
+    <link rel="stylesheet" type="text/css" href="style.css" />
+
+    <!-- <script src="lib/p5.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/p5.min.js"></script>
+
+    <script src="lib/p5.sound.js"></script>
+    <!-- include socket.io library -->
+    <script src="socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/ml5@1/dist/ml5.js"></script>
+
+    <!-- ── Intro overlay styles (all new, nothing from style.css touched) ── -->
+    <style>
+      #intro-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-family: "Helvetica Neue", Helvetica, "PingFang SC",
+          "Hiragino Sans GB", sans-serif;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      #intro-overlay.hidden {
+        display: none;
+      }
+
+      /* ── Top / bottom text rows ── */
+      .intro-side {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2vmin;
+        padding: 0 2.5vh;
+        text-align: center;
+        line-height: 1.55;
+        transform: rotate(90deg);
+      }
+
+      .intro-title {
+        font-size: clamp(12px, 4vmin, 18px);
+        font-weight: 300;
+        letter-spacing: 0.14em;
+        margin: 0 0 1.5vmin;
+        opacity: 0.95;
+      }
+
+      .intro-block {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6vmin;
+      }
+
+      .intro-block p {
+        margin: 0;
+        font-size: clamp(10px, 3vmin, 14px);
+        font-weight: 200;
+        letter-spacing: 0.06em;
+        opacity: 0.7;
+      }
+
+      .intro-note {
+        margin-top: 2vmin;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5vmin;
+      }
+
+      .intro-note p {
+        margin: 0;
+        font-size: clamp(9px, 2.4vmin, 12px);
+        font-weight: 200;
+        letter-spacing: 0.05em;
+        opacity: 0.45;
+        font-style: italic;
+      }
+
+      /* ── Centre GIF row ── */
+      .intro-center {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #intro-gif {
+        width: 32vmin;
+        height: auto;
+        object-fit: contain;
+        filter: invert(1);
+      }
+
+      /* ── Enter button (bottom-left, rotated) ── */
+      #start-btn {
+        position: fixed;
+        bottom: 3vmin;
+        left: 3vmin;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        color: #fff;
+        font-size: clamp(20px, 5.5vmin, 30px);
+        line-height: 1;
+        width: 2.2em;
+        height: 2.2em;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        -webkit-tap-highlight-color: transparent;
+        transform: rotate(90deg);
+      }
+
+      #start-btn:active {
+        opacity: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ── Intro overlay (new) ── -->
+    <div id="intro-overlay">
+      <div class="intro-side">
+        <p class="intro-title">这是一块玻璃</p>
+        <div class="intro-block">
+          <p>对着它哈气</p>
+          <p>雾气便会在玻璃上出现</p>
+        </div>
+        <div class="intro-block">
+          <p>用手指在雾气中</p>
+          <p>写下你想传达的话</p>
+        </div>
+        <div class="intro-note">
+          <p>为了卫生</p>
+          <p>请勿将嘴贴近屏幕</p>
+          <p>在原处轻轻哈气即可</p>
+        </div>
+      </div>
+
+      <div class="intro-center">
+        <img id="intro-gif" src="assets/breathe4.GIF" alt="" />
+      </div>
+
+      <div class="intro-side">
+        <p class="intro-title">This is a pane of glass</p>
+        <div class="intro-block">
+          <p>Breathe onto it</p>
+          <p>and fog will form on the surface</p>
+        </div>
+        <div class="intro-block">
+          <p>Use your fingertip</p>
+          <p>to write a message in the mist</p>
+        </div>
+        <div class="intro-note">
+          <p>For hygiene purposes</p>
+          <p>keep away from the screen</p>
+          <p>just breathe where you stand</p>
+        </div>
+      </div>
+
+      <button id="start-btn" onclick="startCamera(); document.getElementById('intro-overlay').classList.add('hidden')">&#8250;</button>
+    </div>
+
+    <!-- ── Original page (unchanged) ── -->
+    <div class="main-wrapper">
+      <div id="p5-canvas-container">
+        <!-- p5 canvas will be appended here. -->
+      </div>
+    </div>
+
+    <!-- the script tag below should always be at the bottom, right before the closing body tag -->
+    <script src="script.js"></script>
+    <!-- <script src="sketch.js"></script> -->
+    <!-- <script src="sketchcopy.js"></script> -->
+    <script src="sketchcopycopy.js"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "GlassDrawing",
+  "icons": [
+    {
+      "src": "assets/fog.png",
+      "type": "image/png",
+      "sizes": "256x256"
+    }
+  ],
+  "orientation": "Natural",
+  "display": "standalone"
+}
