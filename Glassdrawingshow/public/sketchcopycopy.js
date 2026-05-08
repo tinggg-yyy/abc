@@ -2,6 +2,7 @@
 
 let capture;
 let faceMesh;
+let faceMeshReady = false;
 let options = { maxFaces: 1, refineLandmarks: false, flipped: false };
 let faces = [];
 let lines = {}; // lines object, key is userId, value is array of lines for that user
@@ -9,10 +10,6 @@ let myFog;
 let otherFog;
 let lastActivity = 0;
 const IDLE_MS = 15000; // 15s
-
-function preload() {
-  faceMesh = ml5.faceMesh(options);
-}
 
 function setup() {
   // Create canvas and put it in the container
@@ -27,13 +24,23 @@ function setup() {
 
   // Camera starts only when the intro button is pressed
   window.startCamera = function () {
-    capture = createCapture({
-      video: { facingMode: "environment" },
-      audio: false,
+    // Show loading hint on button
+    let btn = document.getElementById("start-btn");
+    if (btn) { btn.textContent = "…"; btn.disabled = true; }
+
+    // Load faceMesh model only now (lazy), then start camera
+    faceMesh = ml5.faceMesh(options, function () {
+      faceMeshReady = true;
+      capture = createCapture({
+        video: { facingMode: "environment" },
+        audio: false,
+      });
+      capture.hide();
+      faceMesh.detectStart(capture, gotFaces);
+      lastActivity = millis();
+      // Hide intro after model + camera are ready
+      document.getElementById("intro-overlay").classList.add("hidden");
     });
-    capture.hide();
-    faceMesh.detectStart(capture, gotFaces);
-    lastActivity = millis();
   };
 
   // No Fog at first
@@ -48,6 +55,11 @@ function setup() {
   breathGif.style("filter", "invert(1)");
   breathGif.style("transform", "rotate(90deg)");
   pop();
+
+  // other person went idle — return this side too
+  socket.on("return-to-intro", function () {
+    if (capture) returnToIntro(false); // false = don't re-emit back
+  });
 
   //  or other person breathed (cannot put it in draw(){} or too many listeners => lagging)
   socket.on("user-breathed", function () {
@@ -118,17 +130,23 @@ function draw() {
   image(myFog, 0, 0);
 }
 
-function returnToIntro() {
+function returnToIntro(notifyOther = true) {
+  if (notifyOther) socket.emit("return-to-intro");
   // Stop and release the camera stream
   try { capture.elt.srcObject.getTracks().forEach(t => t.stop()); } catch (e) {}
   capture.remove();
   capture = null;
+  faceMesh = null;
+  faceMeshReady = false;
   // Reset state
   faces = [];
   lines = {};
   myFog.clear();
   otherFog.clear();
-  if (breathGif) breathGif.hide();
+  if (breathGif) breathGif.show();
+  // Restore start button
+  let btn = document.getElementById("start-btn");
+  if (btn) { btn.textContent = "›"; btn.disabled = false; }
   // Show intro overlay again
   document.getElementById("intro-overlay").classList.remove("hidden");
 }

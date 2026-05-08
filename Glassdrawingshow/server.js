@@ -82,6 +82,10 @@ io.on("connection", (socket) => {
     // console.log("user breathed");
   });
 
+  socket.on("return-to-intro", function () {
+    socket.broadcast.emit("return-to-intro");
+  });
+
   socket.on("disconnect", () => {
     console.log("user disconnected");
   });
