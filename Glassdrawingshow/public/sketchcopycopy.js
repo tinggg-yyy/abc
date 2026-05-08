@@ -8,7 +8,7 @@ let lines = {}; // lines object, key is userId, value is array of lines for that
 let myFog;
 let otherFog;
 let lastActivity = 0;
-const IDLE_MS = 60000; // 1 minute
+const IDLE_MS = 15000; // 15s
 
 function preload() {
   faceMesh = ml5.faceMesh(options);
